@@ -1,5 +1,6 @@
 import random
 import secrets
+import sqlite3
 import string
 
 
@@ -19,3 +20,18 @@ def validate_auth(fn):
         return fn(*args, **kwargs)
 
     return wrapper
+
+
+def create_conn(db_name="sqlite3.db"):
+    try:
+        conn = sqlite3.connect(db_name)
+        return conn
+    except sqlite3.Error as e:
+        print(e)
+
+
+def create_db(db_name="sqlite3.db"):
+    conn = create_conn(db_name)
+    cursor = conn.cursor()
+    with open("create_db.sql", "r") as script:
+        cursor.executescript(script.read())

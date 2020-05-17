@@ -1,6 +1,7 @@
 import datetime
 import sqlite3
 import abc
+from time import strptime
 
 import crypto
 import settings
@@ -10,10 +11,10 @@ import utils
 class Model(abc.ABC):
     fields = []
 
-    def __init__(self, db_name="sqlite3.db"):
-        self.db_name = db_name
+    def __init__(self, db_name="db.sqlite3"):
         self.table_name = self.__class__.__name__.lower()
-        self.conn = sqlite3.connect(self.db_name)
+        self.db_name = db_name
+        self.conn = utils.create_conn(db_name=db_name)
 
     def __del__(self):
         self.conn.close()
@@ -45,14 +46,22 @@ class Model(abc.ABC):
         users = cursor.fetchall()
         return users
 
-    def first(self):
-        sql = f"SELECT * FROM {self.table_name} LIMIT 1"
-        cursor = self.execute_sql(sql)
+    def first(self, **kwargs):
+        if kwargs:
+            conditions = self.get_conditions(kwargs)
+            sql = f"SELECT * FROM {self.table_name} WHERE {conditions} LIMIT 1"
+        else:
+            sql = f"SELECT * FROM {self.table_name} LIMIT 1"
+        cursor = self.execute_sql(sql, kwargs)
         return cursor.fetchone()
 
-    def last(self):
-        sql = f"SELECT * FROM {self.table_name} ORDER BY id DESC LIMIT 1"
-        cursor = self.execute_sql(sql)
+    def last(self, **kwargs):
+        if kwargs:
+            conditions = self.get_conditions(kwargs)
+            sql = f"SELECT * FROM {self.table_name} WHERE {conditions} ORDER BY id DESC LIMIT 1"
+        else:
+            sql = f"SELECT * FROM {self.table_name} ORDER BY id DESC LIMIT 1"
+        cursor = self.execute_sql(sql, kwargs)
         return cursor.fetchone()
 
     def filter(self, **kwargs):
@@ -68,8 +77,7 @@ class Model(abc.ABC):
         sql = f"UPDATE {self.table_name} SET {data_placeholder} WHERE {where_placeholder}"
         params = list(data.values()) + list(where.values())
         cursor = self.execute_sql(sql, params)
-        objects = cursor.fetchall()
-        return objects
+        return self.filter(**data)[0]
 
     def delete(self, **kwargs):
         conditions = self.get_conditions(kwargs)
@@ -97,3 +105,10 @@ class AuthToken(Model):
         token = utils.generate_token()
         expires = datetime.datetime.now() + datetime.timedelta(**settings.EXPIRATION)
         return super(AuthToken, self).create(token=token, user_id=user_id, expires=expires)
+
+    def is_valid(self, id):
+        token = self.first(id=id)
+        expires_date = strptime(token[3], "%Y-%m-%d %H:%M:%S.%f")
+        expires = datetime.datetime(year=expires_date.tm_year, month=expires_date.tm_mon, day=expires_date.tm_mday,
+                                    hour=expires_date.tm_hour, minute=expires_date.tm_min, second=expires_date.tm_sec)
+        return datetime.datetime.now() < expires
