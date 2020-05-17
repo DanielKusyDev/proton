@@ -1,8 +1,8 @@
 import socket
 
-from server.message import Message
-from server.urls import urlpatterns
-from server.utils import ProtonError
+from message import Message
+from utils import ProtonError
+from controllers import Controller
 
 
 class Server(object):
@@ -33,6 +33,7 @@ class Server(object):
                     raw_message = self.recv_all(conn)
                     try:
                         message = Message(raw_message)
+
                     except ProtonError as e:
                         str(e)
                     self.dispatch(message)
@@ -42,17 +43,27 @@ class Server(object):
 
 if __name__ == "__main__":
     s = Server()
-    r = """  {
-    "action": "create",
-    "params": {
-      "image": "data:image/jpeg;base64...",
-      "content": "Lorem ipsum...",
-      "header": "dolor sit amet"
-    },
-    "opts": {
-      "auth_token": "gsF23!a4..."
-    }
-  }"""
-    # message = Message(r)
-    # urlpatterns[message.action](message)
+    r = """{
+        "action": "update",
+        "params": {
+            "username": "daniel",
+            "password": "pass"
+        }
+    }"""
+    message = Message(r)
+    controller = Controller()
+    result = getattr(controller, message.action)(message)
+    print(result)
 
+
+# """  {
+#     "action": "create",
+#     "params": {
+#       "image": "data:image/jpeg;base64...",
+#       "content": "Lorem ipsum...",
+#       "header": "dolor sit amet"
+#     },
+#     "opts": {
+#       "auth_token": "gsF23!a4..."
+#     }
+#   }"""

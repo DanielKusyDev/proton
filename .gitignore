@@ -129,4 +129,5 @@ dmypy.json
 .pyre/
 
 .idea
-server/sqlite3.db
+sqlite3.db
+config.ini

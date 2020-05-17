@@ -1,6 +1,6 @@
 import json
 
-from server import utils
+import utils
 
 
 class Message(object):
