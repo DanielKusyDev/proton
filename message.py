@@ -4,17 +4,17 @@ import utils
 
 
 class Message(object):
-    required_action_params = {
-        "register": ["username", "password"],
-        "login": ["username", "password"],
-        "logout": None,
-        "get": None,
-        "create": ["image", "content", "header"],
-        "alter": ["id"],
-        "delete": ["id"],
-    }
 
     def __init__(self, json_string):
+        self.required_action_params = {
+            "register": ["username", "password"],
+            "login": ["username", "password"],
+            "logout": None,
+            "get": None,
+            "create": ["image", "content", "header"],
+            "alter": ["id"],
+            "delete": ["id"],
+        }
         json_string = json_string.lower()
         self.json_string = json_string
         self.obj = self.deserialize_json()
@@ -40,11 +40,11 @@ class Message(object):
     def get_params(self):
         params = self.obj.get("params", None)
         if isinstance(params, dict):
-            for key, item in params.items():
-                assert key in self.required_action_params[self.action]
+            for param in self.required_action_params[self.action]:
+                assert param in params.keys()
         else:
             assert params is None
-            assert self.required_action_params["action"] is None
+            assert self.required_action_params.get(self.action, None) is None
         return params
 
     def get_opts(self):

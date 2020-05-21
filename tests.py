@@ -88,8 +88,26 @@ class MessageTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.message.get_action()
 
-    # def test_require_params
+    def test_required_params(self):
+        # delete required parameter "username"
+        del self.message.obj["params"]["username"]
+        with self.assertRaises(AssertionError):
+            self.message.get_params()
 
+    def test_empty_params(self):
+        # remove params from message object
+        del self.message.obj["params"]
+        with self.assertRaises(AssertionError):
+            self.message.get_params()
+
+        # remove params from required_params field of message
+        self.message.required_action_params[self.message.action] = None
+        self.assertIsNone(self.message.get_params())
+
+    def test_opts(self):
+        self.assertIsNone(self.message.get_opts())
+        self.message.obj["opts"] = {"example": "test"}
+        self.assertIsInstance(self.message.get_opts(), dict)
 
 
 class ControllerTests(unittest.TestCase):
@@ -102,6 +120,3 @@ class ControllerTests(unittest.TestCase):
     def test_register(self):
         request = self.requests[0]
         raw_request = json.dumps(request)
-
-
-
