@@ -1,3 +1,4 @@
+import json
 import os
 import sqlite3
 import unittest
@@ -5,6 +6,7 @@ import unittest
 import crypto
 import models
 import utils
+from message import Message
 
 
 class ProtonTestCase(unittest.TestCase):
@@ -14,7 +16,6 @@ class ProtonTestCase(unittest.TestCase):
         cls.db_name = "test.db"
 
     def tearDown(self) -> None:
-
         os.remove(self.db_name)
 
 
@@ -68,6 +69,39 @@ class ModelTests(ProtonTestCase):
         self.assertTrue(self.auth_token_model.is_valid(auth_token[0]))
 
 
+class MessageTests(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.proper_request = """{"action":"register", "params":{"username":"...", "password":"..."}}"""
+        self.message = Message(self.proper_request)
+
+    def test_deserialization(self):
+        request = """{
+            "action": "",
+            """
+        self.message.json_string = request
+        with self.assertRaises(utils.ProtonError):
+            self.message.deserialize_json()
+
+    def test_getting_action(self):
+        self.message.obj["action"] = "nonexistingactionfortests"
+        with self.assertRaises(AssertionError):
+            self.message.get_action()
+
+    # def test_require_params
+
+
+
 class ControllerTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        with open("requests.json", "r") as file:
+            cls.requests = json.loads(file.read())
+
     def test_register(self):
-        pass
+        request = self.requests[0]
+        raw_request = json.dumps(request)
+
+
+
