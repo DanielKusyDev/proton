@@ -1,3 +1,5 @@
+import datetime
+
 import models
 import crypto
 from utils import validate_auth, ProtonError
@@ -5,10 +7,23 @@ from utils import validate_auth, ProtonError
 
 class Controller(object):
 
-    @classmethod
-    def register(cls, message):
+    def __init__(self, db_name="sqlite3.db"):
+        self.db_name = db_name
+
+    def _get_token(self, user):
+        user_id = user[0]
+        auth_token_model = models.AuthToken(self.db_name)
+        token = auth_token_model.first(user_id=user_id)
+        if token:
+            token = auth_token_model.update(data={"expires": auth_token_model.get_fresh_expiration()},
+                                            where={"user_id": user_id})
+        else:
+            token = auth_token_model.create(user_id=user_id)
+        return token
+
+    def register(self, message):
         params = message.params
-        user_model = models.User()
+        user_model = models.User(self.db_name)
         users = user_model.filter(username=params.get("username"))
         if len(users) > 0:
             raise ProtonError("Given user already exists.")
@@ -16,49 +31,37 @@ class Controller(object):
         username = params.get("username")
         password = params.get("password")
         user_model.create(username=username, password=password)
-        users = user_model.filter(username=username)
+        users = user_model.first(username=username)
         return users
 
-    @classmethod
-    def login(cls, message):
+    def login(self, message):
         params = message.params
         username = params["username"]
         password = params["password"]
-        user_model = models.User()
-        users = user_model.filter(username=username)
-        if len(users) != 1 or not crypto.compare(password, users[0][2]):
+        user_model = models.User(self.db_name)
+        user = user_model.first(username=username)
+        if not user or not crypto.compare(password, user[2]):
             raise ProtonError("Incorrect username or/and password.")
 
-        user_id = users[0][0]
-        auth_token_model = models.AuthToken()
-        tokens = auth_token_model.filter(user_id=user_id)
-        if len(tokens) == 1:
-            auth_token = tokens[0]
-            # auth_token
-        #     auth_token = auth_token_model.create()
-        # return auth_token
+        token = self._get_token(user)
+        return token
 
-    @classmethod
     @validate_auth
-    def logout(cls, message):
+    def logout(self, message):
         pass
 
-    @classmethod
     @validate_auth
-    def get(cls, message):
+    def get(self, message):
         pass
 
-    @classmethod
     @validate_auth
-    def create(cls, message):
+    def create(self, message):
         pass
 
-    @classmethod
     @validate_auth
-    def alter(cls, message):
+    def alter(self, message):
         pass
 
-    @classmethod
     @validate_auth
-    def delete(cls, message):
+    def delete(self, message):
         pass

@@ -54,16 +54,3 @@ if __name__ == "__main__":
     controller = Controller()
     result = getattr(controller, message.action)(message)
     print(result)
-
-
-# """  {
-#     "action": "create",
-#     "params": {
-#       "image": "data:image/jpeg;base64...",
-#       "content": "Lorem ipsum...",
-#       "header": "dolor sit amet"
-#     },
-#     "opts": {
-#       "auth_token": "gsF23!a4..."
-#     }
-#   }"""

@@ -11,7 +11,7 @@ import utils
 class Model(abc.ABC):
     fields = []
 
-    def __init__(self, db_name="db.sqlite3"):
+    def __init__(self, db_name="sqlite3.db"):
         self.table_name = self.__class__.__name__.lower()
         self.db_name = db_name
         self.conn = utils.create_conn(db_name=db_name)
@@ -77,7 +77,7 @@ class Model(abc.ABC):
         sql = f"UPDATE {self.table_name} SET {data_placeholder} WHERE {where_placeholder}"
         params = list(data.values()) + list(where.values())
         cursor = self.execute_sql(sql, params)
-        return self.filter(**data)[0]
+        return self.first(**data)
 
     def delete(self, **kwargs):
         conditions = self.get_conditions(kwargs)
@@ -101,13 +101,18 @@ class User(Model):
 class AuthToken(Model):
     fields = ["token", "user_id", "expires"]
 
+    def get_fresh_expiration(self):
+        expires = datetime.datetime.now() + datetime.timedelta(**settings.EXPIRATION)
+        return expires
+
     def create(self, user_id):
         token = utils.generate_token()
-        expires = datetime.datetime.now() + datetime.timedelta(**settings.EXPIRATION)
+        expires = self.get_fresh_expiration()
         return super(AuthToken, self).create(token=token, user_id=user_id, expires=expires)
 
-    def is_valid(self, id):
-        token = self.first(id=id)
+
+    def is_valid(self, user_id):
+        token = self.first(user_id=user_id)
         expires_date = strptime(token[3], "%Y-%m-%d %H:%M:%S.%f")
         expires = datetime.datetime(year=expires_date.tm_year, month=expires_date.tm_mon, day=expires_date.tm_mday,
                                     hour=expires_date.tm_hour, minute=expires_date.tm_min, second=expires_date.tm_sec)

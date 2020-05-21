@@ -6,6 +6,7 @@ import unittest
 import crypto
 import models
 import utils
+from controllers import Controller
 from message import Message
 
 
@@ -14,6 +15,14 @@ class ProtonTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.db_name = "test.db"
+        with open("requests.json", "r") as file:
+            cls.requests = json.loads(file.read())
+
+    def setUp(self) -> None:
+        utils.create_db(self.db_name)
+        self.user_model = models.User(self.db_name)
+        self.auth_token_model = models.AuthToken(self.db_name)
+        self.post_model = models.Post(self.db_name)
 
     def tearDown(self) -> None:
         os.remove(self.db_name)
@@ -21,10 +30,7 @@ class ProtonTestCase(unittest.TestCase):
 
 class ModelTests(ProtonTestCase):
     def setUp(self) -> None:
-        utils.create_db(self.db_name)
-        self.user_model = models.User(self.db_name)
-        self.auth_token_model = models.AuthToken(self.db_name)
-        self.post_model = models.Post(self.db_name)
+        super(ModelTests, self).setUp()
         self.user_data = {
             "username": "test_username",
             "password": "test_pass"
@@ -69,9 +75,10 @@ class ModelTests(ProtonTestCase):
         self.assertTrue(self.auth_token_model.is_valid(auth_token[0]))
 
 
-class MessageTests(unittest.TestCase):
+class MessageTests(ProtonTestCase):
 
     def setUp(self) -> None:
+        super(MessageTests, self).setUp()
         self.proper_request = """{"action":"register", "params":{"username":"...", "password":"..."}}"""
         self.message = Message(self.proper_request)
 
@@ -110,13 +117,49 @@ class MessageTests(unittest.TestCase):
         self.assertIsInstance(self.message.get_opts(), dict)
 
 
-class ControllerTests(unittest.TestCase):
+class ControllerTests(ProtonTestCase):
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        with open("requests.json", "r") as file:
-            cls.requests = json.loads(file.read())
+    def setUp(self) -> None:
+        super(ControllerTests, self).setUp()
+        self.controller = Controller(self.db_name)
+
+    def _request_action(self, request):
+        raw_request = json.dumps(request)
+        message = Message(raw_request)
+        result = getattr(self.controller, message.action)(message)
+        return result
 
     def test_register(self):
         request = self.requests[0]
-        raw_request = json.dumps(request)
+        number_of_users = len(self.user_model.all())
+        result = self._request_action(request)
+        self.assertIsInstance(result, tuple)
+        self.assertGreater(len(result), number_of_users)
+        self.assertEqual(request["params"]["username"], result[1])
+        self.assertNotEqual(request["params"]["password"], result[2])
+
+    def test_getting_token(self):
+        user = self._request_action(self.requests[0])
+
+        token = self.controller._get_token(user)
+        self.assertIsInstance(token, tuple)
+
+        self._request_action(self.requests[1])
+        token = self.controller._get_token(user)
+        self.assertIsInstance(token, tuple)
+
+    def test_login(self):
+        user = self._request_action(self.requests[0])
+        request = self.requests[1]
+        # check valid login
+        result = self._request_action(request)
+        self.assertIsInstance(result, tuple)
+        self.assertTrue(self.auth_token_model.is_valid(user[0]))
+
+        request["params"]["username"] = "wrongusername"
+        with self.assertRaises(utils.ProtonError):
+            result = self._request_action(request)
+
+
+
+
