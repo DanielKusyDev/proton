@@ -48,7 +48,9 @@ class Controller(object):
 
     @validate_auth
     def logout(self, message):
-        pass
+        token = message.opts["auth_token"]
+        auth_model = models.AuthToken(self.db_name)
+        auth_model.delete(token=token)
 
     @validate_auth
     def get(self, message):

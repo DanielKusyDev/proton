@@ -15,7 +15,8 @@ class Message(object):
             "alter": ["id"],
             "delete": ["id"],
         }
-        json_string = json_string.lower()
+        self.auth_actions = ["logout", "get", "create", "alter", "delete"]
+        json_string = json_string
         self.json_string = json_string
         self.obj = self.deserialize_json()
         try:
@@ -50,4 +51,6 @@ class Message(object):
     def get_opts(self):
         opts = self.obj.get("opts", None)
         assert isinstance(opts, dict) or opts is None
+        if self.action in self.auth_actions:
+            assert opts.get("auth_token", None) is not None
         return opts

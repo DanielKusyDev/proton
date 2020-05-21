@@ -12,13 +12,10 @@ from message import Message
 
 class ProtonTestCase(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.db_name = "test.db"
-        with open("requests.json", "r") as file:
-            cls.requests = json.loads(file.read())
-
     def setUp(self) -> None:
+        self.db_name = "test.db"
+        with open("requests.json", "r") as file:
+            self.requests = json.loads(file.read())
         utils.create_db(self.db_name)
         self.user_model = models.User(self.db_name)
         self.auth_token_model = models.AuthToken(self.db_name)
@@ -150,16 +147,26 @@ class ControllerTests(ProtonTestCase):
 
     def test_login(self):
         user = self._request_action(self.requests[0])
-        request = self.requests[1]
+        request = self.requests[1].copy()
         # check valid login
         result = self._request_action(request)
         self.assertIsInstance(result, tuple)
         self.assertTrue(self.auth_token_model.is_valid(user[0]))
 
+        # check invalid login data
         request["params"]["username"] = "wrongusername"
         with self.assertRaises(utils.ProtonError):
             result = self._request_action(request)
 
+    def test_logout(self):
+        user = self._request_action(self.requests[0])
+        token = self._request_action(self.requests[1])
+        logout_request = self.requests[2].copy()
+        logout_request["opts"]["auth_token"] = token[2]
+        self._request_action(logout_request)
+        self.assertIsNone(self.auth_token_model.first(user_id=user[0]))
 
-
-
+        logout_request = self.requests[2].copy()
+        del logout_request["opts"]["auth_token"]
+        with self.assertRaises(utils.ProtonError):
+            self._request_action(logout_request)
