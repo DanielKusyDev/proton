@@ -10,6 +10,37 @@ from controllers import Controller
 from message import Message
 
 
+class CryptographyTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.plain = "test123123"
+
+    def test_key_generation(self):
+        key1 = crypto.generate_key()
+        key2 = crypto.generate_key()
+        self.assertEqual(key1, key2)
+
+    def test_encryption(self):
+        cipher = crypto.encrypt(self.plain)
+        self.assertNotEqual(self.plain, cipher)
+
+        cipher2 = crypto.encrypt(self.plain)
+        self.assertNotEqual(cipher, cipher2)
+
+    def test_decryption(self):
+        cipher = crypto.encrypt(self.plain)
+        decrypted_cipher = crypto.decrypt(cipher)
+        self.assertEqual(decrypted_cipher, self.plain)
+
+        cipher2 = crypto.encrypt(self.plain)
+        decrypted_cipher2 = crypto.decrypt(cipher2)
+        self.assertEqual(decrypted_cipher, decrypted_cipher2)
+
+    def test_comparison(self):
+        cipher = crypto.encrypt(self.plain)
+        self.assertTrue(crypto.compare(self.plain, cipher))
+
+
 class ProtonTestCase(unittest.TestCase):
 
     def setUp(self) -> None:

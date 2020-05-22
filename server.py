@@ -1,7 +1,7 @@
 import socket
 
 from message import Message
-from utils import ProtonError
+import utils
 from controllers import Controller
 
 
@@ -15,12 +15,14 @@ class Server(object):
             result += sock.recv(1).decode()
         return result
 
-    def dispatch(self, message):
-        action = message.action
+    def dispatch(self, raw_message):
+        message = Message(raw_message)
+        controller = Controller()
         try:
-            urlpatterns[action](message)
-        except KeyError as e:
-            print(e)
+            result = getattr(controller, message.action)(message)
+        except PermissionError as e:
+            self.send("Permission denied. Authorization required.")
+        return result
 
     def runserver(self):
         sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
@@ -31,26 +33,10 @@ class Server(object):
                 conn, addr = sock.accept()
                 with conn:
                     raw_message = self.recv_all(conn)
-                    try:
-                        message = Message(raw_message)
-
-                    except ProtonError as e:
-                        str(e)
-                    self.dispatch(message)
-        except socket.error as e:
+                    request_result = self.dispatch(raw_message)
+        except (socket.error, utils.ProtonError) as e:
             print(e)
 
 
 if __name__ == "__main__":
     s = Server()
-    r = """{
-        "action": "update",
-        "params": {
-            "username": "daniel",
-            "password": "pass"
-        }
-    }"""
-    message = Message(r)
-    controller = Controller()
-    result = getattr(controller, message.action)(message)
-    print(result)
