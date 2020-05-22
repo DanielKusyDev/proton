@@ -110,9 +110,10 @@ class AuthToken(Model):
         expires = self.get_fresh_expiration()
         return super(AuthToken, self).create(token=token, user_id=user_id, expires=expires)
 
-
-    def is_valid(self, user_id):
-        token = self.first(user_id=user_id)
+    def is_valid(self, **kwargs):
+        token = self.first(**kwargs)
+        if token is None:
+            raise utils.ProtonError("Not found.")
         expires_date = strptime(token[3], "%Y-%m-%d %H:%M:%S.%f")
         expires = datetime.datetime(year=expires_date.tm_year, month=expires_date.tm_mon, day=expires_date.tm_mday,
                                     hour=expires_date.tm_hour, minute=expires_date.tm_min, second=expires_date.tm_sec)

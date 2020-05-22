@@ -69,7 +69,11 @@ class ModelTests(ProtonTestCase):
         user = self.user_model.create(**self.user_data)
         auth_token = self.auth_token_model.create(user_id=user[0])
         self.assertEqual(user[0], auth_token[1])
-        self.assertTrue(self.auth_token_model.is_valid(auth_token[0]))
+        is_valid = self.auth_token_model.is_valid(user_id=auth_token[0])
+        self.assertTrue(is_valid)
+
+        with self.assertRaises(utils.ProtonError):
+            is_valid = self.auth_token_model.is_valid(user_id=123123123)
 
 
 class MessageTests(ProtonTestCase):
@@ -126,6 +130,11 @@ class ControllerTests(ProtonTestCase):
         result = getattr(self.controller, message.action)(message)
         return result
 
+    def test_auth_validation(self):
+        # try to access controller method with bound validation auth without providing any
+        with self.assertRaises(PermissionError):
+            self._request_action(self.requests[2])
+
     def test_register(self):
         request = self.requests[0]
         number_of_users = len(self.user_model.all())
@@ -151,22 +160,26 @@ class ControllerTests(ProtonTestCase):
         # check valid login
         result = self._request_action(request)
         self.assertIsInstance(result, tuple)
-        self.assertTrue(self.auth_token_model.is_valid(user[0]))
+        is_valid = self.auth_token_model.is_valid(user_id=user[0])
+        self.assertTrue(is_valid)
 
         # check invalid login data
         request["params"]["username"] = "wrongusername"
         with self.assertRaises(utils.ProtonError):
             result = self._request_action(request)
 
-    def test_logout(self):
+    def test_proper_logout(self):
         user = self._request_action(self.requests[0])
         token = self._request_action(self.requests[1])
         logout_request = self.requests[2].copy()
         logout_request["opts"]["auth_token"] = token[2]
+
+        # check if token does not exist anymore
         self._request_action(logout_request)
         self.assertIsNone(self.auth_token_model.first(user_id=user[0]))
-
-        logout_request = self.requests[2].copy()
-        del logout_request["opts"]["auth_token"]
-        with self.assertRaises(utils.ProtonError):
+        # test attempt of providing invalid token and lack of token in opts field
+        with self.assertRaises(PermissionError):
+            self._request_action(logout_request)
+            logout_request = self.requests[2].copy()
+            del logout_request["opts"]["auth_token"]
             self._request_action(logout_request)

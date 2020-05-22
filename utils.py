@@ -3,8 +3,11 @@ import secrets
 import sqlite3
 import string
 
+import models
+
 
 class ProtonError(BaseException):
+    """Proton protocol error base class"""
     pass
 
 
@@ -15,8 +18,13 @@ def generate_token(length=40):
 
 def validate_auth(fn):
     def wrapper(*args, **kwargs):
-        message = args[0]
-        # tu walidacja tokenu z message
+        controller, message = args
+        try:
+            token = message.opts["auth_token"]
+            token_model = models.AuthToken(controller.db_name)
+            assert token_model.is_valid(token=token)
+        except (KeyError, AssertionError, ProtonError):
+            raise PermissionError("Permission denied. Authorization required.")
         return fn(*args, **kwargs)
 
     return wrapper

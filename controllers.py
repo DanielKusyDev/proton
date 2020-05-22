@@ -48,7 +48,10 @@ class Controller(object):
 
     @validate_auth
     def logout(self, message):
-        token = message.opts["auth_token"]
+        try:
+            token = message.opts["auth_token"]
+        except KeyError:
+            raise ProtonError
         auth_model = models.AuthToken(self.db_name)
         auth_model.delete(token=token)
 
