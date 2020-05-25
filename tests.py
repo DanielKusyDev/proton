@@ -229,8 +229,8 @@ class ControllerTests(ProtonTestCase):
             del logout_request["opts"]["auth_token"]
             self._request_action(logout_request)
 
-    def _create_post(self):
-        request = self._login(self.requests[3])
+    def _create_post(self, create_user=True):
+        request = self._login(self.requests[3], create_user)
         request["params"]["image"] = self.image_str
         response = self._request_action(request)
         return response
@@ -240,8 +240,35 @@ class ControllerTests(ProtonTestCase):
         self.assertTrue(response)
 
     def test_getting_post_by_id(self):
-        post = self._create_post()
+        self._create_post()
         request = self._login(self.requests[5], False)
         response = self._request_action(request)
         self.assertIsInstance(response, tuple)
         self.assertNotIsInstance(response[0], tuple)
+
+    def test_getting_post(self):
+        self._create_post(True)
+        self._create_post(False)
+        request = self._login(self.requests[4], False)
+        response = self._request_action(request)
+        self.assertIsInstance(response, list)
+        self.assertEqual(len(response), 2)
+        self.assertIsInstance(response[0], tuple)
+
+    def test_post_modify(self):
+        post = self._create_post()
+        request = self.requests[6]
+        title = "NEWTITLE"
+        request["params"]["title"] = title
+        request = self._login(request, False)
+        response = self._request_action(request)
+        self.assertIsInstance(response, tuple)
+        self.assertNotEqual(post[3], response[3])
+        self.assertEqual(response[3], title)
+
+    def test_post_deletion(self):
+        post = self._create_post()
+        request = self._login(self.requests[7], False)
+        response = self._request_action(request)
+        self.assertIsInstance(response, tuple)
+        self.assertListEqual(self.post_model.all(), [])

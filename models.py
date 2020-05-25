@@ -80,10 +80,11 @@ class Model(abc.ABC):
         return self.first(**data)
 
     def delete(self, **kwargs):
+        obj = self.first(**kwargs)
         conditions = self.get_conditions(kwargs)
         sql = f"DELETE FROM {self.table_name} WHERE {conditions}"
         self.execute_sql(sql, kwargs)
-        return True
+        return obj
 
 
 class Post(Model):

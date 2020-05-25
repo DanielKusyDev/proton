@@ -46,21 +46,21 @@
     }
   },
   {
-    "action": "delete",
+    "action": "alter",
     "params": {
-      "id": 1
+      "id": 1,
+      "image": "data:image/jpeg;base64",
+      "content": "consectetur adipiscing elit.",
+      "title": "Proin nibh augue"
     },
     "opts": {
       "auth_token": "gsF23!a4..."
     }
   },
   {
-    "action": "alter",
+    "action": "delete",
     "params": {
-      "id": 1,
-      "image": "data:image/jpeg;base64",
-      "content": "consectetur adipiscing elit.",
-      "header": "Proin nibh augue"
+      "id": 1
     },
     "opts": {
       "auth_token": "gsF23!a4..."

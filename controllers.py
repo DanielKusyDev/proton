@@ -67,11 +67,12 @@ class Controller(object):
         else:
             return self.post_model.all()
 
-
     @validate_auth
     def alter(self, message):
-        pass
+        post_id = message.params.pop("id")
+        return self.post_model.update(data=message.params, where={"id": post_id})
 
     @validate_auth
     def delete(self, message):
-        pass
+        post_id = message.params.pop("id")
+        return self.post_model.delete(id=post_id)
