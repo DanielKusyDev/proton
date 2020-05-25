@@ -20,6 +20,17 @@
     }
   },
   {
+    "action": "create",
+    "params": {
+      "image": "data:image/jpeg;base64...",
+      "content": "Lorem ipsum...",
+      "title": "dolor sit amet"
+    },
+    "opts": {
+      "auth_token": "gsF23!a4..."
+    }
+  },
+  {
     "action": "get",
     "opts": {
       "auth_token": "gsF23!a4..."
@@ -29,17 +40,6 @@
     "action": "get",
     "params": {
       "id": 1
-    },
-    "opts": {
-      "auth_token": "gsF23!a4..."
-    }
-  },
-  {
-    "action": "create",
-    "params": {
-      "image": "data:image/jpeg;base64...",
-      "content": "Lorem ipsum...",
-      "header": "dolor sit amet"
     },
     "opts": {
       "auth_token": "gsF23!a4..."

@@ -87,7 +87,7 @@ class Model(abc.ABC):
 
 
 class Post(Model):
-    fields = ["image", "description", "header", "user_id"]
+    fields = ["image", "content", "title", "user_id"]
 
 
 class User(Model):

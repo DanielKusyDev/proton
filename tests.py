@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import sqlite3
@@ -151,9 +152,22 @@ class MessageTests(ProtonTestCase):
 
 class ControllerTests(ProtonTestCase):
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        with open("assets/corgi.jpeg", "rb") as img:
+            img_as_str = img.read()
+            cls.image_str = base64.b64encode(img_as_str).decode()
+
     def setUp(self) -> None:
         super(ControllerTests, self).setUp()
         self.controller = Controller(self.db_name)
+
+    def _login(self, request, create_user=True):
+        if create_user:
+            self._request_action(self.requests[0])
+        token = self._request_action(self.requests[1])
+        request["opts"]["auth_token"] = token[2]
+        return request
 
     def _request_action(self, request):
         raw_request = json.dumps(request)
@@ -214,3 +228,20 @@ class ControllerTests(ProtonTestCase):
             logout_request = self.requests[2].copy()
             del logout_request["opts"]["auth_token"]
             self._request_action(logout_request)
+
+    def _create_post(self):
+        request = self._login(self.requests[3])
+        request["params"]["image"] = self.image_str
+        response = self._request_action(request)
+        return response
+
+    def test_create_full_data_post(self):
+        response = self._create_post()
+        self.assertTrue(response)
+
+    def test_getting_post_by_id(self):
+        post = self._create_post()
+        request = self._login(self.requests[5], False)
+        response = self._request_action(request)
+        self.assertIsInstance(response, tuple)
+        self.assertNotIsInstance(response[0], tuple)

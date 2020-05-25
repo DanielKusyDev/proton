@@ -11,7 +11,7 @@ class Message(object):
             "login": ["username", "password"],
             "logout": None,
             "get": None,
-            "create": ["image", "content", "header"],
+            "create": ["content", "title"],
             "alter": ["id"],
             "delete": ["id"],
         }
@@ -40,8 +40,9 @@ class Message(object):
     def get_params(self):
         params = self.obj.get("params", None)
         if isinstance(params, dict):
-            for param in self.required_action_params[self.action]:
-                assert param in params.keys()
+            if self.required_action_params[self.action] is not None:
+                for param in self.required_action_params[self.action]:
+                    assert param in params.keys()
         else:
             assert params is None
             assert self.required_action_params.get(self.action, None) is None
