@@ -22,6 +22,24 @@ class Model(abc.ABC):
     def get_fields(self):
         return ",".join(self.fields)
 
+    def get_table_cols(self):
+        sql = f"PRAGMA table_info({self.table_name})"
+        cursor = self.conn.cursor()
+        cursor.execute(sql)
+        raw_cols = cursor.fetchall()
+
+        def map_col_type(col):
+            c_type = col[2].lower()
+            if "integer" in c_type:
+                return c_type
+            elif "char" in c_type:
+                return str
+            elif "datetime" in c_type:
+                return datetime.timedelta
+
+        cols = {col[1]: map_col_type(col) for col in raw_cols}
+        return cols
+
     def get_conditions(self, filters):
         conditions = [f"{key}=:{key}" for key, val in filters.items()]
         conditions = f" and ".join(conditions)

@@ -23,7 +23,7 @@ class Server(object):
             message = message.encode()
         sock.sendall(message)
 
-    def dispatch(self, sock, raw_message):
+    def dispatch(self, raw_message):
         message = Message(raw_message)
         controller = Controller()
         try:
@@ -42,9 +42,12 @@ class Server(object):
             except queue.Empty:
                 output_conns.remove(sock)
                 raise queue.Empty
-            try:
-                self.dispatch(message)
-            e
+
+            # try:
+            self.dispatch(sock, message)
+            # except utils.ProtonError as e:
+            #     self.send()
+
         return writable, output_conns, message_queue
 
     @staticmethod
@@ -105,21 +108,7 @@ class Server(object):
                                                                                                           message_queue)
         server_socket.close()
 
-        # sock.bind(self.address)
-        # sock.listen(10)
-        # try:
-        #     while True:
-        #         conn, addr = sock.accept()
-        #         with conn:
-        #             raw_message = self.recv_all(conn)
-        #             request_result = self.dispatch(raw_message)
-        # except (socket.error, utils.ProtonError) as e:
-        #     print(e)
-
-
-#
 
 if __name__ == "__main__":
     s = Server()
-
     addr = ("127.0.0.1", 6666)
