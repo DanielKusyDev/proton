@@ -131,3 +131,4 @@ dmypy.json
 .idea
 sqlite3.db
 config.ini
+.cert
