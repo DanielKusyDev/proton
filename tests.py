@@ -8,7 +8,8 @@ import unittest
 from backend import crypto
 from core import models
 import utils
-from core.controllers import Controller, Response, ModelResponse
+from core.controllers import Controller
+from core.response import Response, ModelResponse
 from core.message import Message
 
 
