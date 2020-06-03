@@ -80,7 +80,7 @@ class Logger(object):
 
     def write(self, message):
         filename = self.get_log_filename()
-        log = self._get_message(message) + "\n"
+        log = self._get_message(message)
         with open(filename, "a") as file:
-            file.write(log)
+            file.write(log + "\n")
         print(log)

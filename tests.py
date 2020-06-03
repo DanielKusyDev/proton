@@ -10,7 +10,7 @@ from core import models
 import utils
 from core.controllers import Controller
 from core.response import Response, ModelResponse
-from core.message import Message
+from core.messages import RequestMessage
 
 
 class CryptographyTestCase(unittest.TestCase):
@@ -115,7 +115,7 @@ class MessageTests(BaseControllerTest):
     def setUp(self) -> None:
         super(MessageTests, self).setUp()
         self.proper_request = """{"action":"register", "params":{"username":"...", "password":"..."}}"""
-        self.message = Message(self.proper_request)
+        self.message = RequestMessage(self.proper_request)
 
     def test_deserialization(self):
         request = """{
@@ -173,7 +173,7 @@ class ControllerTests(BaseControllerTest):
 
     def _request_action(self, request):
         raw_request = json.dumps(request)
-        message = Message(raw_request)
+        message = RequestMessage(raw_request)
         result = getattr(self.controller, message.action)(message)
         return result
 

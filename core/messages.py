@@ -3,7 +3,7 @@ import json
 import utils
 
 
-class Message(object):
+class RequestMessage(object):
 
     def __init__(self, json_string):
         self.required_action_params = {
@@ -52,3 +52,37 @@ class Message(object):
         opts = self.obj.get("opts", None)
         assert isinstance(opts, dict) or opts is None
         return opts
+
+
+class ResponseMessage(object):
+    def __init__(self):
+        self.status = None
+        self.message = None
+        self.data = None
+        self.request_str = None
+
+    def construct_json(self):
+        _request = {
+            "status": self.status,
+            "message": self.message,
+            "data": self.data
+        }
+        request = {key: val for key, val in _request.items() if val is not None}
+        self.request_str = json.dumps(request)
+
+    def __repr__(self):
+        return self.request_str
+
+
+class ErrorResponseMessage(ResponseMessage):
+    def __init__(self, error):
+        super(ErrorResponseMessage, self).__init__()
+        self.message = error
+        self.status = "ERROR"
+        self.construct_json()
+
+
+class SuccessResponseMessage(ResponseMessage):
+    def __init__(self):
+        super(SuccessResponseMessage, self).__init__()
+        self.status = "OK"
