@@ -132,3 +132,4 @@ dmypy.json
 sqlite3.db
 config.ini
 .cert
+test_client.py

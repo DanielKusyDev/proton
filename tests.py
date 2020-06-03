@@ -1,14 +1,15 @@
+import abc
 import base64
 import json
 import os
 import sqlite3
 import unittest
 
-import crypto
-import models
+from backend import crypto
+from core import models
 import utils
-from controllers import Controller, Response, ModelResponse
-from message import Message
+from core.controllers import Controller, Response, ModelResponse
+from core.message import Message
 
 
 class CryptographyTestCase(unittest.TestCase):
@@ -42,7 +43,7 @@ class CryptographyTestCase(unittest.TestCase):
         self.assertTrue(crypto.compare(self.plain, cipher))
 
 
-class ProtonTestCase(unittest.TestCase):
+class BaseControllerTest(unittest.TestCase, metaclass=abc.ABCMeta):
 
     def setUp(self) -> None:
         self.db_name = "test.db"
@@ -57,7 +58,7 @@ class ProtonTestCase(unittest.TestCase):
         os.remove(self.db_name)
 
 
-class ModelTests(ProtonTestCase):
+class ModelTests(BaseControllerTest):
     def setUp(self) -> None:
         super(ModelTests, self).setUp()
         self.user_data = {
@@ -108,7 +109,7 @@ class ModelTests(ProtonTestCase):
             is_valid = self.auth_token_model.is_valid(user_id=123123123)
 
 
-class MessageTests(ProtonTestCase):
+class MessageTests(BaseControllerTest):
 
     def setUp(self) -> None:
         super(MessageTests, self).setUp()
@@ -150,7 +151,7 @@ class MessageTests(ProtonTestCase):
         self.assertIsInstance(self.message.get_opts(), dict)
 
 
-class ControllerTests(ProtonTestCase):
+class ControllerTests(BaseControllerTest):
 
     @classmethod
     def setUpClass(cls) -> None:
