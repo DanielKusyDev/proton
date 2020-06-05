@@ -69,6 +69,7 @@ class ResponseMessage(object):
         }
         request = {key: val for key, val in _request.items() if val is not None}
         self.request_str = json.dumps(request)
+        self.request_str += "\r\n"
 
     def __repr__(self):
         return self.request_str

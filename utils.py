@@ -1,6 +1,7 @@
 import os
 import secrets
 import sqlite3
+import ssl
 import string
 from datetime import datetime
 
@@ -42,7 +43,7 @@ def create_conn(db_name="sqlite3.db"):
 def create_db(db_name="sqlite3.db"):
     conn = create_conn(db_name)
     cursor = conn.cursor()
-    with open("create_db.sql", "r") as script:
+    with open("core/db/create_db.sql", "r") as script:
         cursor.executescript(script.read())
 
 
@@ -84,3 +85,4 @@ class Logger(object):
         with open(filename, "a") as file:
             file.write(log + "\n")
         print(log)
+
