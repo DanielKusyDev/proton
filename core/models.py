@@ -1,4 +1,5 @@
 import datetime
+import os
 import sqlite3
 import abc
 from time import strptime
@@ -12,9 +13,8 @@ class Model(abc.ABC):
     fields = []
     write_only = []
 
-    def __init__(self, db_name="sqlite3.db"):
+    def __init__(self, db_name=settings.DATABASE):
         self.table_name = self.__class__.__name__.lower()
-        self.db_name = db_name
         self.conn = utils.create_conn(db_name=db_name)
 
     def __del__(self):

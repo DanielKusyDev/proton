@@ -5,6 +5,7 @@ import os
 import sqlite3
 import unittest
 
+import settings
 from backend import crypto
 from core import models
 import utils
@@ -121,7 +122,7 @@ class MessageTests(BaseControllerTest):
             "action": "",
             """
         self.message.json_string = request
-        with self.assertRaises(utils.ProtonError):
+        with self.assertRaises(json.JSONDecodeError):
             self.message.deserialize_json()
 
     def test_getting_action(self):
@@ -212,7 +213,7 @@ class ControllerTests(BaseControllerTest):
         # check invalid login data
         request["params"]["username"] = "wrongusername"
         result = self._request_action(request)
-        self.assertFalse(result.status)
+        self.assertEqual(result.status, "ERROR")
 
     def test_proper_logout(self):
         user = self._request_action(self.requests[0])

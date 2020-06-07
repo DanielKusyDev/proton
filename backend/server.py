@@ -38,8 +38,12 @@ class ClientThread(threading.Thread):
 
     def run(self) -> None:
         request = self.get_request()
-        response = getattr(controllers.Controller(), request.action)(request)
-        send(self.secure_socket, response)
+        try:
+            response = getattr(controllers.Controller(), request.action)(request)
+        except PermissionError as e:
+            response = messages.Response(status="ERROR", message=str(e))
+        finally:
+            send(self.secure_socket, response)
 
 
 class Server(object):

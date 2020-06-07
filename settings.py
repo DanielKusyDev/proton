@@ -1,5 +1,6 @@
 import codecs
 from configparser import RawConfigParser
+
 parser = RawConfigParser()
 parser.read_file(codecs.open("config.ini", "r", "utf-8"))
 
@@ -9,5 +10,4 @@ SALT = parser.get("SECRET", "SALT").encode()
 EXPIRATION = {
     "minutes": 15
 }
-
-DB_DIR = "core/db"
+DATABASE = "core/db/sqlite3.db"

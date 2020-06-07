@@ -28,28 +28,25 @@ def validate_auth(fn):
             token_model = models.AuthToken(controller.db_name)
             assert token_model.is_valid(token=token)
         except (KeyError, AssertionError, ProtonError):
-            response = messages.Response(status="ERROR", message="Permission denied. Authorization required.")
-            return response
+            raise PermissionError("Permission denied. Authorization required.")
         else:
             return fn(*args, **kwargs)
 
     return wrapper
 
 
-def create_conn(db_name="sqlite3.db"):
-    db = os.path.join(settings.DB_DIR, db_name)
+def create_conn(db_name=settings.DATABASE):
     try:
-        conn = sqlite3.connect(db)
+        conn = sqlite3.connect(db_name)
         return conn
     except sqlite3.Error as e:
         print(e)
 
 
-def create_db(db_name="sqlite3.db"):
-    db = os.path.join(settings.DB_DIR, db_name)
-    conn = create_conn(db)
+def create_db(db_name=settings.DATABASE):
+    conn = create_conn(db_name)
     cursor = conn.cursor()
-    with open(os.path.join(settings.DB_DIR, "create_db.sql"), "r") as script:
+    with open(os.path.join("core/db/create_db.sql"), "r") as script:
         cursor.executescript(script.read())
 
 

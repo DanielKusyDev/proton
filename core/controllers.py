@@ -1,3 +1,4 @@
+import settings
 from core import models
 from backend import crypto
 from utils import validate_auth
@@ -7,7 +8,7 @@ from core.messages import ModelResponse, Response
 
 class Controller(object):
 
-    def __init__(self, db_name="sqlite3.db"):
+    def __init__(self, db_name=settings.DATABASE):
         self.db_name = db_name
         self.post_model = models.Post(self.db_name)
         self.user_model = models.User(self.db_name)
