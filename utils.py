@@ -5,10 +5,11 @@ import ssl
 import string
 from datetime import datetime
 
-from core import models
+import settings
+from core import models, messages
 
 
-class ProtonError(BaseException):
+class ProtonError(Exception):
     """Proton protocol error base class"""
     pass
 
@@ -22,28 +23,33 @@ def validate_auth(fn):
     def wrapper(*args, **kwargs):
         controller, message = args
         try:
+            assert message.opts is not None
             token = message.opts["auth_token"]
             token_model = models.AuthToken(controller.db_name)
             assert token_model.is_valid(token=token)
         except (KeyError, AssertionError, ProtonError):
-            raise PermissionError("Permission denied. Authorization required.")
-        return fn(*args, **kwargs)
+            response = messages.Response(status="ERROR", message="Permission denied. Authorization required.")
+            return response
+        else:
+            return fn(*args, **kwargs)
 
     return wrapper
 
 
 def create_conn(db_name="sqlite3.db"):
+    db = os.path.join(settings.DB_DIR, db_name)
     try:
-        conn = sqlite3.connect(db_name)
+        conn = sqlite3.connect(db)
         return conn
     except sqlite3.Error as e:
         print(e)
 
 
 def create_db(db_name="sqlite3.db"):
-    conn = create_conn(db_name)
+    db = os.path.join(settings.DB_DIR, db_name)
+    conn = create_conn(db)
     cursor = conn.cursor()
-    with open("core/db/create_db.sql", "r") as script:
+    with open(os.path.join(settings.DB_DIR, "create_db.sql"), "r") as script:
         cursor.executescript(script.read())
 
 

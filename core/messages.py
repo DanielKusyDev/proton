@@ -1,9 +1,11 @@
 import json
+from typing import Union
 
 import utils
+from core import models
 
 
-class RequestMessage(object):
+class Request(object):
 
     def __init__(self, json_string):
         self.required_action_params = {
@@ -17,19 +19,16 @@ class RequestMessage(object):
         }
         json_string = json_string
         self.json_string = json_string
-        self.obj = self.deserialize_json()
         try:
+            self.obj = self.deserialize_json()
             self.action = self.get_action()
             self.params = self.get_params()
             self.opts = self.get_opts()
-        except (KeyError, AssertionError):
+        except (KeyError, AssertionError, json.JSONDecodeError) as e:
             raise utils.ProtonError("Syntax Error")
 
     def deserialize_json(self):
-        try:
-            obj = json.loads(self.json_string)
-        except json.JSONDecodeError as e:
-            raise utils.ProtonError("Syntax Error")
+        obj = json.loads(self.json_string)
         return obj
 
     def get_action(self):
@@ -54,12 +53,14 @@ class RequestMessage(object):
         return opts
 
 
-class ResponseMessage(object):
-    def __init__(self):
-        self.status = None
-        self.message = None
-        self.data = None
-        self.request_str = None
+class Response(object):
+    def __init__(self, status, message=None, data=None):
+        self.message = message
+        self.status = status
+        self.data = data
+        self.json_response = None
+
+        self.construct_json()
 
     def construct_json(self):
         _request = {
@@ -68,22 +69,32 @@ class ResponseMessage(object):
             "data": self.data
         }
         request = {key: val for key, val in _request.items() if val is not None}
-        self.request_str = json.dumps(request)
-        self.request_str += "\r\n"
+        self.json_response = json.dumps(request)
+        self.json_response += "\r\n"
 
     def __repr__(self):
-        return self.request_str
+        return self.json_response
 
 
-class ErrorResponseMessage(ResponseMessage):
-    def __init__(self, error):
-        super(ErrorResponseMessage, self).__init__()
-        self.message = error
-        self.status = "ERROR"
-        self.construct_json()
+class ModelResponse(Response):
+    def __init__(self, status, model, raw_instance: Union[list, tuple], message=""):
 
+        if not isinstance(model, models.Model):
+            model = model()
+        self.model = model
 
-class SuccessResponseMessage(ResponseMessage):
-    def __init__(self):
-        super(SuccessResponseMessage, self).__init__()
-        self.status = "OK"
+        if not isinstance(raw_instance[0], tuple):
+            raw_instance = [raw_instance]
+        self.raw_instance = raw_instance
+
+        data = self.create_data()
+        super(ModelResponse, self).__init__(status, message, data=data)
+
+    def create_data(self):
+        table_schema = self.model.get_table_cols()
+        data = []
+        for instance in self.raw_instance:
+            single_obj_data = {col_name: val for col_name, val in zip(table_schema, instance) if
+                               col_name not in self.model.write_only}
+            data.append(single_obj_data)
+        return data

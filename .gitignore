@@ -131,5 +131,5 @@ dmypy.json
 .idea
 core/db/sqlite3.db
 config.ini
-.cert
+/backend/certs
 test_client.py

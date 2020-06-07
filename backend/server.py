@@ -1,9 +1,8 @@
-import queue
-import select
 import socket
 import ssl
+import threading
 
-from core import messages
+from core import messages, controllers
 from utils import Logger
 
 logger = Logger()
@@ -16,107 +15,73 @@ def recv_all(sock: ssl.SSLSocket) -> str:
     return result
 
 
-def send(sock: ssl.SSLSocket, message: messages.ResponseMessage) -> None:
-    message_str = message.request_str
+def send(sock: ssl.SSLSocket, response: messages.Response) -> None:
+    message_str = response.json_response
 
     if isinstance(message_str, str):
         message_str = message_str.encode()
     sock.write(message_str)
 
     host, port = sock.getpeername()
-    logger.write(f"{host}:{port} | {message.status}: {message.message} ")
+    logger.write(f"{host}:{port} | {response.status}: {response.message} ")
 
 
-class ConnectionManager(object):
-    def __init__(self, server_socket):
-        self.server_socket = server_socket
-        self.inputs = [server_socket]
-        self.outputs = []
-        self.message_queue = {}
+class ClientThread(threading.Thread):
+    def __init__(self, secure_socket: ssl.SSLSocket):
+        super().__init__()
+        self.secure_socket = secure_socket
 
-        self.readable, self.writable, _ = (None, None, None)
+    def get_request(self):
+        raw_message = recv_all(self.secure_socket)
+        request = messages.Request(raw_message)
+        return request
 
-    def handle_unexpected_error(self, e):
-        for conn, val in self.message_queue.items():
-            error_response = messages.ErrorResponseMessage(error=str(e))
-            send(conn, error_response)
-            logger.write(error_response.message)
-
-    def process(self):
-        while self.inputs:
-            self.readable, self.writable, _ = select.select(self.inputs, self.outputs, self.inputs)
-            try:
-                self.read_input()
-                self.write_output()
-            except Exception as e:
-                self.handle_unexpected_error(e)
-                break
-
-    def read_input(self):
-        for sock in self.readable:
-            try:
-                if sock is self.server_socket:
-                    conn, c_addr = sock.accept()
-                    conn.setblocking(False)
-                    self.inputs.append(conn)
-                    self.message_queue[conn] = queue.Queue()
-                    logger.write(f"Connected by {c_addr[0]}:{c_addr[1]}")
-                else:
-                    message = recv_all(sock)
-                    if message:
-                        self.message_queue[sock].put(message)
-                        if sock not in self.outputs:
-                            self.outputs.append(sock)
-                    else:
-                        if sock in self.outputs:
-                            self.outputs.remove(sock)
-                        self.inputs.remove(sock)
-                        sock.close()
-                        del self.message_queue[sock]
-            except ssl.SSLWantReadError:
-                message = messages.ErrorResponseMessage("Syntax Error")
-                send(sock, message)
-
-    def write_output(self):
-        for sock in self.writable:
-            try:
-                raw_message = self.message_queue[sock].get_nowait()
-                # sleep(10)
-            except queue.Empty:
-                self.outputs.remove(sock)
-            else:
-                # todo
-                sock.sendall(raw_message)
+    def run(self) -> None:
+        request = self.get_request()
+        response = getattr(controllers.Controller(), request.action)(request)
+        send(self.secure_socket, response)
 
 
 class Server(object):
     def __init__(self, address=("127.0.0.1", 6666)):
         self.address = address
 
-    def get_secure_socket(self, raw_socket: socket.socket) -> ssl.SSLSocket:
-        context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-        context.load_cert_chain(certfile="/etc/ssl/certs/proton.pem")
-        secure_socket = context.wrap_socket(raw_socket, server_side=True)
-        return secure_socket
-
-    def get_raw_socket(self, raw_socket: socket.socket) -> socket.socket:
+    def get_raw_socket(self) -> socket.socket:
+        raw_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         raw_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        raw_socket.setblocking(False)
         raw_socket.bind(self.address)
-        raw_socket.listen(5)
+        raw_socket.listen(100)
         return raw_socket
 
-    def runserver(self) -> None:
-        logger.write(f"Starting server at {self.address[0]}:{self.address[1]}")
-        raw_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+    def get_secure_socket(self, raw_socket: socket.socket) -> ssl.SSLSocket:
+        ssock = ssl.wrap_socket(raw_socket, server_side=True, ca_certs="backend/certs/client.pem",
+                                certfile="backend/certs/server.pem", cert_reqs=ssl.CERT_REQUIRED,
+                                ssl_version=ssl.PROTOCOL_TLS)
+        cert = ssock.getpeercert()
+        if not cert or ("commonName", 'proton') not in cert['subject'][5]:
+            raise Exception
+        return ssock
 
+    def process(self, server_socket: socket.socket):
         try:
-            raw_socket = self.get_raw_socket(raw_socket)
-            server_socket = self.get_secure_socket(raw_socket)
-            connections = ConnectionManager(server_socket)
-            connections.process()
-        except socket.error as e:
-            print("todo")
-            raise e
+            while True:
+                conn, c_addr = server_socket.accept()
+                secure_client = self.get_secure_socket(conn)
+                secure_client.setblocking(False)
+                try:
+                    logger.write(f"Connected by {c_addr[0]}:{c_addr[1]}")
+                    c = ClientThread(secure_client)
+                    c.start()
+                except Exception as e:
+                    response = messages.Response(status="ERROR", message=str(e))
+                    send(secure_client, response)
+                    secure_client.close()
+        except Exception as e:
+            logger.write(str(e))
         finally:
-            raw_socket.close()
+            server_socket.close()
+
+    def runserver(self):
+        logger.write(f"Starting server at {self.address[0]}:{self.address[1]}")
+        server_socket = self.get_raw_socket()
+        self.process(server_socket)

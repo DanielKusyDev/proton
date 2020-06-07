@@ -4,11 +4,16 @@
 name: Proton
 
 on:
-  [push]
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
 jobs:
   build:
-    name: Build and deploy
+
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
@@ -21,12 +26,6 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Prepare test environment
       run: cp config_example.ini config.ini
-    - name: Test with unittest
+    - name: Test with pytest
       run: |
         python3 -m unittest tests.py
-
-    - name: 'Run Azure webapp deploy action using publish profile credentials'
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: "prot-on"
-        publish-profile: ${{ secrets.azureWebAppPublishProfile }}

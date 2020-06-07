@@ -10,6 +10,7 @@ import utils
 
 class Model(abc.ABC):
     fields = []
+    write_only = []
 
     def __init__(self, db_name="sqlite3.db"):
         self.table_name = self.__class__.__name__.lower()
@@ -111,6 +112,7 @@ class Post(Model):
 
 class User(Model):
     fields = ["username", "password"]
+    write_only = ["password"]
 
     def create(self, **kwargs):
         kwargs["password"] = crypto.encrypt(kwargs.get("password"))

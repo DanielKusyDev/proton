@@ -9,3 +9,5 @@ SALT = parser.get("SECRET", "SALT").encode()
 EXPIRATION = {
     "minutes": 15
 }
+
+DB_DIR = "core/db"
