@@ -30,20 +30,31 @@ class ClientThread(threading.Thread):
     def __init__(self, secure_socket: ssl.SSLSocket):
         super().__init__()
         self.secure_socket = secure_socket
+        self.socket_authorized = False
 
     def get_request(self):
         raw_message = recv_all(self.secure_socket)
         request = messages.Request(raw_message)
         return request
 
+    def get_response(self, request):
+        controller = controllers.Controller(self.socket_authorized)
+        response = getattr(controller, request.action)(request)
+        if request.action == "login" and response.status == "OK":
+            self.socket_authorized = True
+        elif request.action == "logout" and response.status == "OK":
+            self.socket_authorized = False
+        return response
+
     def run(self) -> None:
-        request = self.get_request()
-        try:
-            response = getattr(controllers.Controller(), request.action)(request)
-        except PermissionError as e:
-            response = messages.Response(status="ERROR", message=str(e))
-        finally:
-            send(self.secure_socket, response)
+        while True:
+            request = self.get_request()
+            try:
+                response = self.get_response(request)
+            except PermissionError as e:
+                response = messages.Response(status="ERROR", message=str(e))
+            finally:
+                send(self.secure_socket, response)
 
 
 class Server(object):

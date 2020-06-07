@@ -23,7 +23,7 @@ def validate_auth(fn):
     def wrapper(*args, **kwargs):
         controller, message = args
         try:
-            assert message.opts is not None
+            assert controller.socket_authorized
             token = message.opts["auth_token"]
             token_model = models.AuthToken(controller.db_name)
             assert token_model.is_valid(token=token)

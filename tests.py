@@ -273,3 +273,7 @@ class ControllerTests(BaseControllerTest):
         response = self._request_action(request)
         self.assertIsInstance(response, Response)
         self.assertListEqual(self.post_model.all(), [])
+
+
+class ClientRequestTests(unittest.TestCase):
+    pass

@@ -8,7 +8,8 @@ from core.messages import ModelResponse, Response
 
 class Controller(object):
 
-    def __init__(self, db_name=settings.DATABASE):
+    def __init__(self, socket_authorized, db_name=settings.DATABASE):
+        self.socket_authorized = socket_authorized
         self.db_name = db_name
         self.post_model = models.Post(self.db_name)
         self.user_model = models.User(self.db_name)
