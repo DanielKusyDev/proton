@@ -46,7 +46,7 @@
     "action": "alter",
     "params": {
       "id": 1,
-      "image": "data:image/jpeg;base64",
+      "image": "assets/corgi.jpeg",
       "content": "consectetur adipiscing elit.",
       "title": "Proin nibh augue"
     },

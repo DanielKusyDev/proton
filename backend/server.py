@@ -61,8 +61,8 @@ class ClientThread(threading.Thread):
 
     def run(self) -> None:
         while True:
-            request = self.get_request()
             try:
+                request = self.get_request()
                 response = self.get_response(request)
                 send(self.secure_socket, response)
             except PermissionError as e:

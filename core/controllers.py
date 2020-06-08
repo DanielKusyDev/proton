@@ -77,7 +77,9 @@ class Controller(object):
     def alter(self, request):
         post_id = request.params.pop("id")
         instance = self.post_model.update(data=request.params, where={"id": post_id})
-        return PostModelResponse("OK", self.post_model, instance)
+        if instance:
+            return PostModelResponse("OK", self.post_model, instance)
+        return Response("WRONG", "Not Found.")
 
     @validate_auth
     def delete(self, request):

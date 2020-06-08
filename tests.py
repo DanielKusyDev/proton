@@ -156,9 +156,14 @@ class ControllerTests(BaseControllerTest):
 
     @classmethod
     def setUpClass(cls) -> None:
-        with open("assets/corgi.jpeg", "rb") as img:
-            img_as_str = img.read()
-            cls.image_str = base64.b64encode(img_as_str).decode()
+        cls.image_str = "assets/corgi.jpeg"
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        assets = os.listdir("assets/")
+        for path in assets:
+            if path != "corgi.jpeg":
+                os.remove(os.path.join("assets", path))
 
     def setUp(self) -> None:
         super(ControllerTests, self).setUp()
@@ -169,7 +174,6 @@ class ControllerTests(BaseControllerTest):
             self._request_action(self.requests[0])
         token = self._request_action(self.requests[1])
         self.controller.auth_token = token.data[0]["token"]
-        # request["opts"]["auth_token"] = token.data[0]["token"]
         return request
 
     def _request_action(self, request):
