@@ -162,13 +162,14 @@ class ControllerTests(BaseControllerTest):
 
     def setUp(self) -> None:
         super(ControllerTests, self).setUp()
-        self.controller = Controller(self.db_name)
+        self.controller = Controller(None, self.db_name)
 
     def _login(self, request, create_user=True):
         if create_user:
             self._request_action(self.requests[0])
         token = self._request_action(self.requests[1])
-        request["opts"]["auth_token"] = token.data[0]["token"]
+        self.controller.auth_token = token.data[0]["token"]
+        # request["opts"]["auth_token"] = token.data[0]["token"]
         return request
 
     def _request_action(self, request):
@@ -219,8 +220,7 @@ class ControllerTests(BaseControllerTest):
         user = self._request_action(self.requests[0])
         token = self._request_action(self.requests[1])
         logout_request = self.requests[2].copy()
-        logout_request["opts"]["auth_token"] = token.data[0]["token"]
-
+        self.controller.auth_token = token.data[0]["token"]
         # check if token does not exist anymore
         self._request_action(logout_request)
         self.assertIsNone(self.auth_token_model.first(user_id=user.data[0]["id"]))
@@ -228,7 +228,6 @@ class ControllerTests(BaseControllerTest):
         with self.assertRaises(PermissionError):
             self._request_action(logout_request)
             logout_request = self.requests[2].copy()
-            del logout_request["opts"]["auth_token"]
             self._request_action(logout_request)
 
     def _create_post(self, create_user=True):

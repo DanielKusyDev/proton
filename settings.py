@@ -11,3 +11,4 @@ EXPIRATION = {
     "minutes": 15
 }
 DATABASE = "core/db/sqlite3.db"
+MEDIA_ROOT = "assets"

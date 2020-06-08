@@ -14,10 +14,7 @@
     }
   },
   {
-    "action": "logout",
-    "opts": {
-      "auth_token": "gsF23!a4..."
-    }
+    "action": "logout"
   },
   {
     "action": "create",

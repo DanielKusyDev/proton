@@ -23,8 +23,8 @@ def validate_auth(fn):
     def wrapper(*args, **kwargs):
         controller, message = args
         try:
-            assert controller.socket_authorized
-            token = message.opts["auth_token"]
+            token = controller.auth_token
+            assert controller.auth_token is not None
             token_model = models.AuthToken(controller.db_name)
             assert token_model.is_valid(token=token)
         except (KeyError, AssertionError, ProtonError):

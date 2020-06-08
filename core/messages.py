@@ -83,7 +83,7 @@ class ModelResponse(Response):
             model = model()
         self.model = model
 
-        if not isinstance(raw_instance[0], tuple):
+        if raw_instance and not isinstance(raw_instance[0], tuple):
             raw_instance = [raw_instance]
         self.raw_instance = raw_instance
 

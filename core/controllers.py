@@ -8,8 +8,8 @@ from core.messages import ModelResponse, Response
 
 class Controller(object):
 
-    def __init__(self, socket_authorized, db_name=settings.DATABASE):
-        self.socket_authorized = socket_authorized
+    def __init__(self, auth_token, db_name=settings.DATABASE):
+        self.auth_token = auth_token
         self.db_name = db_name
         self.post_model = models.Post(self.db_name)
         self.user_model = models.User(self.db_name)
@@ -34,7 +34,7 @@ class Controller(object):
         password = params.get("password")
         self.user_model.create(username=username, password=password)
         users = self.user_model.first(username=username)
-        return ModelResponse("OK", self.user_model, users, )
+        return ModelResponse("OK", self.user_model, users)
 
     def login(self, request):
         params = request.params
@@ -49,13 +49,13 @@ class Controller(object):
 
     @validate_auth
     def logout(self, request):
-        token = request.opts["auth_token"]
+        token = self.auth_token
         self.auth_model.delete(token=token)
         return Response("OK")
 
     @validate_auth
     def create(self, request):
-        user_id = self.auth_model.first(token=request.opts["auth_token"])[1]
+        user_id = self.auth_model.first(token=self.auth_token)[1]
         post = self.post_model.create(user_id=user_id, **request.params)
         return ModelResponse(status="OK", model=self.post_model, raw_instance=post,
                              message="Post created successfully.")
@@ -66,10 +66,9 @@ class Controller(object):
         if getattr(request, "params", None) is not None and request.params.get("id", None) is not None:
             post_id = request.params["id"]
             if post_id is not None:
-                instance = self.post_model.first(id=post_id)
+                instance = self.post_model.filter(id=post_id)
         else:
             instance = self.post_model.all()
-
         return ModelResponse("OK", self.post_model, raw_instance=instance)
 
     @validate_auth
