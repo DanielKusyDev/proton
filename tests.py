@@ -156,7 +156,7 @@ class ControllerTests(BaseControllerTest):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.image_str = "assets/corgi.jpeg"
+        cls.image_str = "test_assets/corgi.jpeg"
 
     @classmethod
     def tearDownClass(cls) -> None:
