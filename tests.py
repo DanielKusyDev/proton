@@ -153,17 +153,15 @@ class MessageTests(BaseControllerTest):
 
 
 class ControllerTests(BaseControllerTest):
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.image_str = "test_assets/corgi.jpeg"
+    media_root = "test_assets"
+    image_str = os.path.join(media_root, "corgi.jpeg")
 
     @classmethod
     def tearDownClass(cls) -> None:
-        assets = os.listdir("assets/")
+        assets = os.listdir(cls.media_root)
         for path in assets:
             if path != "corgi.jpeg":
-                os.remove(os.path.join("assets", path))
+                os.remove(os.path.join(cls.media_root, path))
 
     def setUp(self) -> None:
         super(ControllerTests, self).setUp()
