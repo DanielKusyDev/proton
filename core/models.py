@@ -22,6 +22,10 @@ class Model(abc.ABC):
     def __del__(self):
         self.conn.close()
 
+    def fetch(self, cursor, many=True):
+        results = cursor.fetchall() if many else cursor.fetchone()
+        return results
+
     def get_fields(self):
         return ",".join(self.fields)
 
@@ -29,7 +33,7 @@ class Model(abc.ABC):
         sql = f"PRAGMA table_info({self.table_name})"
         cursor = self.conn.cursor()
         cursor.execute(sql)
-        raw_cols = cursor.fetchall()
+        raw_cols = self.fetch(cursor, True)
 
         def map_col_type(col):
             c_type = col[2].lower()
@@ -64,7 +68,7 @@ class Model(abc.ABC):
     def all(self):
         sql = f"SELECT * FROM {self.table_name}"
         cursor = self.execute_sql(sql)
-        users = cursor.fetchall()
+        users = self.fetch(cursor)
         return users
 
     def first(self, **kwargs):
@@ -74,7 +78,7 @@ class Model(abc.ABC):
         else:
             sql = f"SELECT * FROM {self.table_name} LIMIT 1"
         cursor = self.execute_sql(sql, kwargs)
-        return cursor.fetchone()
+        return self.fetch(cursor, False)
 
     def last(self, **kwargs):
         if kwargs:
@@ -83,13 +87,13 @@ class Model(abc.ABC):
         else:
             sql = f"SELECT * FROM {self.table_name} ORDER BY id DESC LIMIT 1"
         cursor = self.execute_sql(sql, kwargs)
-        return cursor.fetchone()
+        return self.fetch(cursor, False)
 
     def filter(self, **kwargs):
         conditions = self.get_conditions(kwargs)
         sql = f"SELECT * FROM {self.table_name} WHERE {conditions}"
         cursor = self.execute_sql(sql, kwargs)
-        objects = cursor.fetchall()
+        objects = self.fetch(cursor, True)
         return objects
 
     def update(self, data: dict, where: dict):
@@ -117,7 +121,6 @@ class Post(Model):
         filename = uuid4().hex + ".jpeg"
         filename = os.path.join(settings.MEDIA_ROOT, filename)
         with open(filename, "wb") as file:
-
             file.write(image)
         kwargs["image"] = filename
         return super(Post, self).create(**kwargs)

@@ -1,3 +1,4 @@
+import base64
 import os
 import secrets
 import sqlite3
@@ -50,6 +51,13 @@ def create_db(db_name=settings.DATABASE):
         cursor.executescript(script.read())
 
 
+def get_image_base64(path):
+    with open(path, "rb") as file:
+        image = file.read()
+        image = base64.b64encode(image).decode()
+    return image
+
+
 class Logger(object):
     def __init__(self, log_dir="logs", max_log_dir_size=5 * 10 ** 6):
         self.log_dir = log_dir
@@ -88,4 +96,3 @@ class Logger(object):
         with open(filename, "a") as file:
             file.write(log + "\n")
         print(log)
-

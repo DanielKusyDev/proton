@@ -133,3 +133,4 @@ core/db/sqlite3.db
 config.ini
 /backend/certs
 test_client.py
+assets

@@ -3,7 +3,7 @@ from core import models
 from backend import crypto
 from utils import validate_auth
 
-from core.messages import ModelResponse, Response
+from core.messages import ModelResponse, Response, PostModelResponse
 
 
 class Controller(object):
@@ -51,14 +51,14 @@ class Controller(object):
     def logout(self, request):
         token = self.auth_token
         self.auth_model.delete(token=token)
-        return Response("OK")
+        return Response("OK", message="Logged out.")
 
     @validate_auth
     def create(self, request):
         user_id = self.auth_model.first(token=self.auth_token)[1]
         post = self.post_model.create(user_id=user_id, **request.params)
-        return ModelResponse(status="OK", model=self.post_model, raw_instance=post,
-                             message="Post created successfully.")
+        return PostModelResponse(status="OK", model=self.post_model, raw_instance=post,
+                                 message="Post created successfully.")
 
     @validate_auth
     def get(self, request):
@@ -69,16 +69,21 @@ class Controller(object):
                 instance = self.post_model.filter(id=post_id)
         else:
             instance = self.post_model.all()
-        return ModelResponse("OK", self.post_model, raw_instance=instance)
+        if instance:
+            return PostModelResponse("OK", self.post_model, raw_instance=instance)
+        return Response("WRONG", "Not Found.")
 
     @validate_auth
     def alter(self, request):
         post_id = request.params.pop("id")
         instance = self.post_model.update(data=request.params, where={"id": post_id})
-        return ModelResponse("OK", self.post_model, instance)
+        return PostModelResponse("OK", self.post_model, instance)
 
     @validate_auth
     def delete(self, request):
         post_id = request.params.pop("id")
-        self.post_model.delete(id=post_id)
-        return Response("OK")
+        obj = self.post_model.delete(id=post_id)
+        if obj is None:
+            return Response("WRONG", "Not Found.")
+        return Response("OK", data={"id": post_id})
+

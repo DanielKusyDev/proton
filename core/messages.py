@@ -90,11 +90,27 @@ class ModelResponse(Response):
         data = self.create_data()
         super(ModelResponse, self).__init__(status, message, data=data)
 
+    def get_record(self, instance, table_schema):
+        return {col_name: val for col_name, val in zip(table_schema, instance) if
+                               col_name not in self.model.write_only}
+
     def create_data(self):
         table_schema = self.model.get_table_cols()
         data = []
         for instance in self.raw_instance:
-            single_obj_data = {col_name: val for col_name, val in zip(table_schema, instance) if
-                               col_name not in self.model.write_only}
+            single_obj_data = self.get_record(instance, table_schema)
             data.append(single_obj_data)
         return data
+
+
+class PostModelResponse(ModelResponse):
+    def get_record(self, instance, table_schema):
+
+        record_data = {}
+        for col_name, val in zip(table_schema, instance):
+            if col_name not in self.model.write_only:
+                if col_name == "image":
+                    val = utils.get_image_base64(val)
+                record_data[col_name] = val
+        return record_data
+
