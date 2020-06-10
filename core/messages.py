@@ -23,7 +23,6 @@ class Request(object):
             self.obj = self.deserialize_json()
             self.action = self.get_action()
             self.params = self.get_params()
-            self.opts = self.get_opts()
         except (KeyError, AssertionError, json.JSONDecodeError) as e:
             raise utils.ProtonError("Syntax Error")
 
@@ -46,12 +45,6 @@ class Request(object):
             assert params is None
             assert self.required_action_params.get(self.action, None) is None
         return params
-
-    def get_opts(self):
-        opts = self.obj.get("opts", None)
-        assert isinstance(opts, dict) or opts is None
-        return opts
-
 
 class Response(object):
     def __init__(self, status, message=None, data=None):

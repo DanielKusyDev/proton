@@ -22,24 +22,15 @@
       "image": "data:image/jpeg;base64...",
       "content": "Lorem ipsum...",
       "title": "dolor sit amet"
-    },
-    "opts": {
-      "auth_token": "gsF23!a4..."
     }
   },
   {
-    "action": "get",
-    "opts": {
-      "auth_token": "gsF23!a4..."
-    }
+    "action": "get"
   },
   {
     "action": "get",
     "params": {
       "id": 1
-    },
-    "opts": {
-      "auth_token": "gsF23!a4..."
     }
   },
   {
@@ -49,18 +40,12 @@
       "image": "test_assets/corgi.jpeg",
       "content": "consectetur adipiscing elit.",
       "title": "Proin nibh augue"
-    },
-    "opts": {
-      "auth_token": "gsF23!a4..."
     }
   },
   {
     "action": "delete",
     "params": {
       "id": 1
-    },
-    "opts": {
-      "auth_token": "gsF23!a4..."
     }
   }
 ]

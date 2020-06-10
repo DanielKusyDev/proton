@@ -2,11 +2,15 @@ import abc
 import base64
 import json
 import os
+import socket
 import sqlite3
+import ssl
+import threading
 import unittest
-
+import shutil
 import settings
 from backend import crypto
+from backend.server import Server
 from core import models
 import utils
 from core.controllers import Controller
@@ -146,11 +150,6 @@ class MessageTests(BaseControllerTest):
         self.message.required_action_params[self.message.action] = None
         self.assertIsNone(self.message.get_params())
 
-    def test_opts(self):
-        self.assertIsNone(self.message.get_opts())
-        self.message.obj["opts"] = {"example": "test"}
-        self.assertIsInstance(self.message.get_opts(), dict)
-
 
 class ControllerTests(BaseControllerTest):
     media_root = "test_assets"
@@ -276,5 +275,159 @@ class ControllerTests(BaseControllerTest):
         self.assertListEqual(self.post_model.all(), [])
 
 
+class ThreadedServer(threading.Thread):
+    def run(self) -> None:
+        server = Server(("localhost", 1234))
+        server.runserver()
+
+
 class ClientRequestTests(unittest.TestCase):
-    pass
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        shutil.move(settings.DATABASE, "sqlite3.db.bak")
+        utils.create_db()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        shutil.move("sqlite3.db.bak", settings.DATABASE)
+
+
+    def setUp(self) -> None:
+        self.connect()
+
+    def tearDown(self) -> None:
+        self.secure_sock.close()
+
+    def recv_all(self, sock: ssl.SSLSocket) -> str:
+        result = ""
+        while result[-2:] != "\r\n":
+            result += sock.read(1).decode()
+        return result
+
+    def send(self, req):
+        sock = self.secure_sock
+        if req[-2:] != "\r\n":
+            req += "\r\n"
+        for i in req:
+            sock.sendall(i.encode("utf-8"))
+        return self.recv_all(sock)
+
+    def connect(self):
+
+        host = "localhost"
+        port = 6666
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setblocking(True)
+        sock.connect((host, port))
+
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        context.verify_mode = ssl.CERT_REQUIRED
+        context.load_verify_locations("backend/certs/server.pem")
+        context.load_cert_chain("backend/certs/client.pem")
+
+        if ssl.HAS_SNI:
+            self.secure_sock = context.wrap_socket(sock, server_side=False, server_hostname=host)
+        else:
+            self.secure_sock = context.wrap_socket(sock, server_side=False)
+
+        cert = self.secure_sock.getpeercert()
+
+        if not cert or ("commonName", "proton") not in cert["subject"][5]:
+            raise Exception
+
+    def get(self, id=None):
+        if id is not None:
+            req = """{
+                        "action": "get",
+                        "params": {"id":%s}
+                      }""" % str(id)
+        else:
+            req = """{
+                    "action": "get"
+                  }"""
+
+        return self.send(req)
+
+    def delete(self, id):
+        req = """{
+            "action": "delete",
+            "params": {
+              "id": %s
+              }
+          }""" % str(id)
+        return self.send(req)
+
+    def alter(self, id):
+        req = """{
+            "action": "alter",
+            "params": {
+                "id": %s,
+                "content": "dupa",
+                "title": "tu tez"
+            }
+        }\r\n""" % str(id)
+        return self.send(req)
+
+    def logout(self, **kwargs):
+        req = """{
+            "action": "logout"
+        }"""
+        return self.send(req)
+
+    def login(self):
+        req = """{
+                "action": "login",
+                "params": {
+                  "username": "Test",
+                  "password": "passwd"
+                }
+              }"""
+        return self.send(req)
+
+    def register(self):
+        req = """{
+                "action": "register",
+                "params": {
+                  "username": "Test",
+                  "password": "passwd"
+                }
+              }"""
+        return self.send(req)
+
+    def _check_auth(self, method, **kwargs):
+        result = method(**kwargs)
+        result = json.loads(result)
+        self.assertEqual(result["status"].upper(), "ERROR")
+        self.assertIn("permission", result["message"].lower())
+
+    def test_unauthorized_get(self):
+        self._check_auth(self.get)
+        self._check_auth(self.get, id=1)
+
+    def test_unauthorized_delete(self):
+        self._check_auth(self.delete, id=1)
+
+    def test_unauthorized_alter(self):
+        self._check_auth(self.alter, id=1)
+
+    def test_unauthorized_logout(self):
+        self._check_auth(self.logout)
+
+    def test_deletion(self):
+        result = json.loads(self.register())
+        print(result)
+        print(self.login())
+        post_id = result["data"][0]["id"]
+        result = self.delete(id=post_id)
+        print(result)
+
+    # def test_registration(self):
+    #     result = self.register()
+    #     print(result)
+    #     result = json.loads(result)
+    #     self.assertEqual(result["status"].upper(), "OK")
+    #     self.assertEqual(len(result["data"]), 1)
+    #     post_id = result["data"][0].get("id", None)
+    #     self.assertIsNotNone(post_id)
+    #     self.delete(id=post_id)
