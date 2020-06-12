@@ -25,7 +25,12 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Prepare test environment
-      run: cp config_example.ini config.ini
-    - name: Test with pytest
       run: |
-        python3 -m unittest tests.py
+        cp config_example.ini config.ini
+        python runserver.py > /dev/null & echo $! > runserver.pid
+    - name: Test with unittest
+      run: |
+        python -m unittest tests.py
+    - name: Kill temporary processes
+      run: |
+        kill -9 $(cat runserver.pid)

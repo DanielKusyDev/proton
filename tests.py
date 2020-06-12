@@ -166,11 +166,17 @@ class ControllerTests(BaseControllerTest):
         super(ControllerTests, self).setUp()
         self.controller = Controller(None, self.db_name)
 
+    def get_token(self, token_instance):
+        token_id = token_instance.data[0]["id"]
+        token_instance = self.auth_token_model.last(id=token_id)[2]
+        return token_instance
+
     def _login(self, request, create_user=True):
         if create_user:
             self._request_action(self.requests[0])
-        token = self._request_action(self.requests[1])
-        self.controller.auth_token = token.data[0]["token"]
+        token_instance = self._request_action(self.requests[1])
+        token = self.get_token(token_instance)
+        self.controller.auth_token = token
         return request
 
     def _request_action(self, request):
@@ -221,7 +227,7 @@ class ControllerTests(BaseControllerTest):
         user = self._request_action(self.requests[0])
         token = self._request_action(self.requests[1])
         logout_request = self.requests[2].copy()
-        self.controller.auth_token = token.data[0]["token"]
+        self.controller.auth_token = self.get_token(token)
         # check if token does not exist anymore
         self._request_action(logout_request)
         self.assertIsNone(self.auth_token_model.first(user_id=user.data[0]["id"]))
@@ -315,8 +321,8 @@ class ClientRequestTests(unittest.TestCase):
 
     def connect(self):
 
-        host = "localhost"
-        port = 6666
+        host = settings.HOST
+        port = settings.PORT
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setblocking(True)
         sock.connect((host, port))
