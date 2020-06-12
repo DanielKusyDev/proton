@@ -3,7 +3,7 @@ import ssl
 import threading
 from time import sleep
 
-from core import messages, controllers
+from core import messages, controllers, models
 from utils import Logger
 
 logger = Logger()
@@ -53,11 +53,12 @@ class ClientThread(threading.Thread):
         controller = controllers.Controller(self.auth_token)
         response = getattr(controller, request.action)(request)
         if request.action == "login" and response.status == "OK":
-            self.auth_token = response.data[0]["token"]
+            token_id = response.data[0]["id"]
+            token = models.AuthToken().first(id=token_id)[2]
+            self.auth_token = token
         elif request.action == "logout" and response.status == "OK":
             self.auth_token = None
         return response
-
 
     def run(self) -> None:
         while True:
@@ -68,7 +69,6 @@ class ClientThread(threading.Thread):
             except PermissionError as e:
                 response = messages.Response(status="ERROR", message=str(e))
                 send(self.secure_socket, response)
-
 
 
 class Server(object):

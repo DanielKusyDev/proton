@@ -47,7 +47,7 @@ def create_conn(db_name=settings.DATABASE):
 def create_db(db_name=settings.DATABASE):
     conn = create_conn(db_name)
     cursor = conn.cursor()
-    with open(os.path.join("core/db/create_db.sql"), "r") as script:
+    with open("core/db/create_db.sql", "r") as script:
         cursor.executescript(script.read())
 
 

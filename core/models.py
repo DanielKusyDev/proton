@@ -139,6 +139,7 @@ class User(Model):
 
 class AuthToken(Model):
     fields = ["token", "user_id", "expires"]
+    write_only = ["token", "expires"]
 
     def get_fresh_expiration(self):
         expires = datetime.datetime.now() + datetime.timedelta(**settings.EXPIRATION)
