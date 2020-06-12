@@ -27,9 +27,6 @@ jobs:
     - name: Prepare test environment
       run: |
         cp config_example.ini config.ini
-        cd backend
-        mkdir certs
-        cd backend
         openssl req -new -x509 -days 365 -nodes -out server.pem -keyout server.pem -subj "/C=PL/ST=Lubelskie/L=Lublin/O=UMCS/OU=MFI/CN=proton"
         openssl req -new -x509 -days 365 -nodes -out client.pem -keyout client.pem -subj "/C=PL/ST=Lubelskie/L=Lublin/O=UMCS/OU=MFI/CN=proton"
         python runserver.py > /dev/null & echo $! > runserver.pid
@@ -39,5 +36,5 @@ jobs:
     - name: Kill temporary processes
       run: |
         kill -9 $(cat runserver.pid)
-        cd backend
-        rm -r certs
+        rm server.pem
+        rm client.pem

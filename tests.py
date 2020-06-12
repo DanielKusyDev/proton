@@ -329,8 +329,8 @@ class ClientRequestTests(unittest.TestCase):
 
         context = ssl.SSLContext(ssl.PROTOCOL_TLS)
         context.verify_mode = ssl.CERT_REQUIRED
-        context.load_verify_locations("backend/certs/server.pem")
-        context.load_cert_chain("backend/certs/client.pem")
+        context.load_verify_locations("server.pem")
+        context.load_cert_chain("client.pem")
 
         if ssl.HAS_SNI:
             self.secure_sock = context.wrap_socket(sock, server_side=False, server_hostname=host)
