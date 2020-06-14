@@ -32,10 +32,16 @@ def send(sock: ssl.SSLSocket, response: messages.Response) -> None:
     host, port = sock.getpeername()
     lock.release()
 
-    log = f"{host}:{port} | {response.status}"
-    if response.message:
-        log += f': {response.message}'
-    logger.write(log)
+    host = f"{host}:{port}"
+    message = response.message if response.message is not None else ""
+    log_args = (response.action, message, host)
+
+    if response.status.upper() == "OK":
+        logger.success(*log_args)
+    elif response.status.upper() == "ERROR":
+        logger.warning(*log_args)
+    else:
+        logger.error(*log_args)
 
 
 class ClientThread(threading.Thread):
@@ -49,7 +55,7 @@ class ClientThread(threading.Thread):
         request = messages.Request(raw_message)
         return request
 
-    def get_response(self, request):
+    def get_response(self, request) -> messages.Response:
         controller = controllers.Controller(self.auth_token)
         response = getattr(controller, request.action)(request)
         if request.action == "login" and response.status == "OK":
@@ -97,7 +103,7 @@ class Server(object):
                 conn, c_addr = server_socket.accept()
                 secure_client = self.get_secure_socket(conn)
                 try:
-                    logger.write(f"Connected by {c_addr[0]}:{c_addr[1]}")
+                    logger.info(f"Connected by {c_addr[0]}:{c_addr[1]}")
                     c = ClientThread(secure_client)
                     c.start()
                 except Exception as e:
@@ -105,11 +111,11 @@ class Server(object):
                     send(secure_client, response)
                     secure_client.close()
         except Exception as e:
-            logger.write(str(e))
+            logger.info(str(e))
         finally:
             server_socket.close()
 
     def runserver(self):
-        logger.write(f"Starting server at {self.address[0]}:{self.address[1]}")
+        logger.info(f"Starting server at {self.address[0]}:{self.address[1]}")
         server_socket = self.get_raw_socket()
         self.process(server_socket)

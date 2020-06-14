@@ -28,13 +28,13 @@ class Controller(object):
         params = request.params
         users = self.user_model.filter(username=params.get("username"))
         if len(users) > 0:
-            return Response(status="ERROR", message="Given user already exists.")
+            return Response(status="ERROR", message="Given user already exists.", action="register")
 
         username = params.get("username")
         password = params.get("password")
         self.user_model.create(username=username, password=password)
         users = self.user_model.first(username=username)
-        return ModelResponse("OK", self.user_model, users)
+        return ModelResponse("OK", self.user_model, users, action="register")
 
     def login(self, request):
         params = request.params
@@ -42,23 +42,22 @@ class Controller(object):
         password = params["password"]
         user = self.user_model.first(username=username)
         if not user or not crypto.compare(password, user[2]):
-            return Response(status="ERROR", message="Incorrect username or/and password.")
+            return Response(status="ERROR", message="Incorrect username or/and password.", action="login")
 
         token = self._get_token(user[0])
-        return ModelResponse("OK", self.auth_model, token)
+        return ModelResponse("OK", self.auth_model, token, action="login")
 
     @validate_auth
     def logout(self, request):
         token = self.auth_token
         self.auth_model.delete(token=token)
-        return Response("OK", message="Logged out.")
+        return Response("OK", action="logout")
 
     @validate_auth
     def create(self, request):
         user_id = self.auth_model.first(token=self.auth_token)[1]
         post = self.post_model.create(user_id=user_id, **request.params)
-        return ModelResponse(status="OK", model=self.post_model, raw_instance=post,
-                                 message="Post created successfully.")
+        return ModelResponse(status="OK", model=self.post_model, raw_instance=post, action="create")
 
     @validate_auth
     def get(self, request):
@@ -70,22 +69,22 @@ class Controller(object):
         else:
             instance = self.post_model.all()
         if instance:
-            return ModelResponse("OK", self.post_model, raw_instance=instance)
-        return Response("WRONG", "Not Found.")
+            return ModelResponse("OK", self.post_model, raw_instance=instance, action="get")
+        return Response("WRONG", "Not Found.", action="get")
 
     @validate_auth
     def alter(self, request):
         post_id = request.params.pop("id")
         instance = self.post_model.update(data=request.params, where={"id": post_id})
         if instance:
-            return ModelResponse("OK", self.post_model, instance)
-        return Response("WRONG", "Not Found.")
+            return ModelResponse("OK", self.post_model, instance, action="alter")
+        return Response("WRONG", "Not Found.", action="alter")
 
     @validate_auth
     def delete(self, request):
         post_id = request.params.pop("id")
         obj = self.post_model.delete(id=post_id)
         if obj is None:
-            return Response("WRONG", "Not Found.")
-        return Response("OK", data={"id": post_id})
+            return Response("WRONG", "Not Found.", action="delete")
+        return Response("OK", data={"id": post_id}, action="delete")
 

@@ -47,7 +47,8 @@ class Request(object):
         return params
 
 class Response(object):
-    def __init__(self, status, message=None, data=None):
+    def __init__(self, status, message=None, data=None, action=""):
+        self.action = action.upper()
         self.message = message
         self.status = status
         self.data = data
@@ -70,7 +71,7 @@ class Response(object):
 
 
 class ModelResponse(Response):
-    def __init__(self, status, model, raw_instance: Union[list, tuple], message=""):
+    def __init__(self, status, model, raw_instance: Union[list, tuple], message="", action=""):
 
         if not isinstance(model, models.Model):
             model = model()
@@ -81,7 +82,7 @@ class ModelResponse(Response):
         self.raw_instance = raw_instance
 
         data = self.create_data()
-        super(ModelResponse, self).__init__(status, message, data=data)
+        super(ModelResponse, self).__init__(status, message, data=data, action=action)
 
     def get_record(self, instance, table_schema):
         return {col_name: val for col_name, val in zip(table_schema, instance) if

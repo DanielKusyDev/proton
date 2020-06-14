@@ -84,15 +84,34 @@ class Logger(object):
                 filename = f"{self.log_dir}/{self.filename_prefix}{file_number}.log"
         return filename
 
-    def _get_message(self, message):
+    def _get_log_body(self, message):
         now = datetime.now()
         log_without_date = self.log_template.format(message=message)
         full_log = now.strftime(log_without_date)
         return full_log
 
-    def write(self, message):
+    def _write(self, message):
+        log = self._get_log_body(message)
+        log = log.strip("| :")
         filename = self.get_log_filename()
-        log = self._get_message(message)
         with open(filename, "a") as file:
             file.write(log + "\n")
         print(log)
+
+    def error(self, action, message="", host=""):
+        if settings.DEBUG:
+            message = f"{host} | ERROR: {message} | {action}"
+        else:
+            message = f"{host} | ERROR: Unexpected error"
+        self._write(message)
+
+    def success(self, action, message="", host=""):
+        message = f"{host} | OK: {message} | {action}"
+        self._write(message)
+
+    def warning(self, action, message="", host=""):
+        message = f"{host} | WRONG: {message} | {action}"
+        self._write(message)
+
+    def info(self, message):
+        self._write(message)
