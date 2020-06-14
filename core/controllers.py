@@ -3,7 +3,7 @@ from core import models
 from backend import crypto
 from utils import validate_auth
 
-from core.messages import ModelResponse, Response, PostModelResponse
+from core.messages import ModelResponse, Response
 
 
 class Controller(object):
@@ -57,7 +57,7 @@ class Controller(object):
     def create(self, request):
         user_id = self.auth_model.first(token=self.auth_token)[1]
         post = self.post_model.create(user_id=user_id, **request.params)
-        return PostModelResponse(status="OK", model=self.post_model, raw_instance=post,
+        return ModelResponse(status="OK", model=self.post_model, raw_instance=post,
                                  message="Post created successfully.")
 
     @validate_auth
@@ -70,7 +70,7 @@ class Controller(object):
         else:
             instance = self.post_model.all()
         if instance:
-            return PostModelResponse("OK", self.post_model, raw_instance=instance)
+            return ModelResponse("OK", self.post_model, raw_instance=instance)
         return Response("WRONG", "Not Found.")
 
     @validate_auth
@@ -78,7 +78,7 @@ class Controller(object):
         post_id = request.params.pop("id")
         instance = self.post_model.update(data=request.params, where={"id": post_id})
         if instance:
-            return PostModelResponse("OK", self.post_model, instance)
+            return ModelResponse("OK", self.post_model, instance)
         return Response("WRONG", "Not Found.")
 
     @validate_auth

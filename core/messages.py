@@ -94,16 +94,3 @@ class ModelResponse(Response):
             single_obj_data = self.get_record(instance, table_schema)
             data.append(single_obj_data)
         return data
-
-
-class PostModelResponse(ModelResponse):
-    def get_record(self, instance, table_schema):
-
-        record_data = {}
-        for col_name, val in zip(table_schema, instance):
-            if col_name not in self.model.write_only:
-                if col_name == "image":
-                    val = utils.get_image_base64(val)
-                record_data[col_name] = val
-        return record_data
-

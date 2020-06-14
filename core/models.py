@@ -115,18 +115,6 @@ class Model(abc.ABC):
 class Post(Model):
     fields = ["image", "content", "title", "user_id"]
 
-    def create(self, **kwargs):
-        image = kwargs.get("image")
-        image = base64.b64decode(image)
-        filename = uuid4().hex + ".jpeg"
-        if not os.path.exists(settings.MEDIA_ROOT):
-            os.mkdir(settings.MEDIA_ROOT)
-        filename = os.path.join(settings.MEDIA_ROOT, filename)
-        with open(filename, "wb") as file:
-            file.write(image)
-        kwargs["image"] = filename
-        return super(Post, self).create(**kwargs)
-
 
 class User(Model):
     fields = ["username", "password"]
