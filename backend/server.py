@@ -93,11 +93,7 @@ class Server(object):
     def get_secure_socket(self, raw_socket: socket.socket) -> ssl.SSLSocket:
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
         context.load_cert_chain(os.path.join(settings.CERTS_DIR, "server.pem"), os.path.join(settings.CERTS_DIR, "server.key"))
-
         ssock = context.wrap_socket(raw_socket, server_side=True)
-        cert = ssock.getpeercert()
-        if not cert or ("commonName", 'proton') not in cert['subject'][5]:
-            raise Exception("Wrong CA CommonName.")
         return ssock
 
     def process(self, server_socket: socket.socket):
