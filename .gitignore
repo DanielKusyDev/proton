@@ -132,5 +132,6 @@ dmypy.json
 core/db/sqlite3.db
 config.ini
 *.pem
+*.key
 test_client.py
 assets
