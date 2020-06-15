@@ -99,8 +99,12 @@ class Server(object):
     def process(self, server_socket: socket.socket):
         try:
             while True:
-                conn, c_addr = server_socket.accept()
-                secure_client = self.get_secure_socket(conn)
+                try:
+                    conn, c_addr = server_socket.accept()
+                    secure_client = self.get_secure_socket(conn)
+                except Exception as e:
+                    logger.info(str(e))
+                    continue
                 try:
                     logger.info(f"Connected by {c_addr[0]}:{c_addr[1]}")
                     c = ClientThread(secure_client)
@@ -111,8 +115,6 @@ class Server(object):
                     secure_client.close()
         except Exception as e:
             logger.info(str(e))
-        finally:
-            server_socket.close()
 
     def runserver(self):
         logger.info(f"Starting server at {self.address[0]}:{self.address[1]}")
