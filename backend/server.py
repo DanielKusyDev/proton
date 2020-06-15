@@ -1,8 +1,10 @@
+import os
 import socket
 import ssl
 import threading
 from time import sleep
 
+import settings
 from core import messages, controllers, models
 from utils import Logger
 
@@ -89,12 +91,13 @@ class Server(object):
         return raw_socket
 
     def get_secure_socket(self, raw_socket: socket.socket) -> ssl.SSLSocket:
-        ssock = ssl.wrap_socket(raw_socket, server_side=True, ca_certs="backend/certs/client.pem",
-                                certfile="backend/certs/server.pem", cert_reqs=ssl.CERT_REQUIRED,
-                                ssl_version=ssl.PROTOCOL_TLS)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        context.load_cert_chain(os.path.join(settings.CERTS_DIR, "server.pem"))
+
+        ssock = context.wrap_socket(raw_socket, server_side=True)
         cert = ssock.getpeercert()
         if not cert or ("commonName", 'proton') not in cert['subject'][5]:
-            raise Exception
+            raise Exception("Wrong CA CommonName.")
         return ssock
 
     def process(self, server_socket: socket.socket):

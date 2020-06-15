@@ -16,3 +16,4 @@ DATABASE = "core/db/sqlite3.db"
 MEDIA_ROOT = "assets"
 PORT = 6666
 HOST = "0.0.0.0"
+CERTS_DIR = "backend/certs"
