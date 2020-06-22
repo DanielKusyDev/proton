@@ -111,3 +111,6 @@ Przykładowy response:
 
 Repozytorium zawiera implementację serwera obsługującego protokół. Klient w postaci aplikacji mobilnej dostępny pod adresem
 https://github.com/lukaszkurantdev/proton-blog-app 
+
+Ogólny sposób funkcjonowania serwera:
+![alt text](https://www.planttext.com/api/plantuml/img/VL913i8m3Bll5Ja24X_O0I7W1S1z2fq54wKTRSRxAQnZxK2SkiPE7BjRUs4dtKqNHHi-6jMqR8Iske6Hh7I0Uy3zO1ql3bndm1xt3ZxltreZpcezcR67RwtnA6eMFh47xJO5AsaUB1X4Uo5QhcAX91SL-dkAd26LX-eSAc_L5JARZwnLjZCj5bJIEu50-eXcjZ9-a8dMGkiND3hi1wi02FxHIhgmgJMgQ6SMptIPCRQaCOpPRUXjbgmZrXAAhmGdf27TVA64ifmayafsU13yMYAjfZcbG7orDKmT_gmd "Request flow")
