@@ -1,26 +1,51 @@
+import base64
 import datetime
+import os
 import sqlite3
 import abc
 from time import strptime
+from uuid import uuid4
 
-import crypto
+from backend import crypto
 import settings
 import utils
 
 
 class Model(abc.ABC):
     fields = []
+    write_only = []
 
-    def __init__(self, db_name="sqlite3.db"):
+    def __init__(self, db_name=settings.DATABASE):
         self.table_name = self.__class__.__name__.lower()
-        self.db_name = db_name
         self.conn = utils.create_conn(db_name=db_name)
 
     def __del__(self):
         self.conn.close()
 
+    def fetch(self, cursor, many=True):
+        results = cursor.fetchall() if many else cursor.fetchone()
+        return results
+
     def get_fields(self):
         return ",".join(self.fields)
+
+    def get_table_cols(self):
+        sql = f"PRAGMA table_info({self.table_name})"
+        cursor = self.conn.cursor()
+        cursor.execute(sql)
+        raw_cols = self.fetch(cursor, True)
+
+        def map_col_type(col):
+            c_type = col[2].lower()
+            if "integer" in c_type:
+                return c_type
+            elif "char" in c_type:
+                return str
+            elif "datetime" in c_type:
+                return datetime.timedelta
+
+        cols = {col[1]: map_col_type(col) for col in raw_cols}
+        return cols
 
     def get_conditions(self, filters):
         conditions = [f"{key}=:{key}" for key, val in filters.items()]
@@ -43,7 +68,7 @@ class Model(abc.ABC):
     def all(self):
         sql = f"SELECT * FROM {self.table_name}"
         cursor = self.execute_sql(sql)
-        users = cursor.fetchall()
+        users = self.fetch(cursor)
         return users
 
     def first(self, **kwargs):
@@ -53,7 +78,7 @@ class Model(abc.ABC):
         else:
             sql = f"SELECT * FROM {self.table_name} LIMIT 1"
         cursor = self.execute_sql(sql, kwargs)
-        return cursor.fetchone()
+        return self.fetch(cursor, False)
 
     def last(self, **kwargs):
         if kwargs:
@@ -62,13 +87,13 @@ class Model(abc.ABC):
         else:
             sql = f"SELECT * FROM {self.table_name} ORDER BY id DESC LIMIT 1"
         cursor = self.execute_sql(sql, kwargs)
-        return cursor.fetchone()
+        return self.fetch(cursor, False)
 
     def filter(self, **kwargs):
         conditions = self.get_conditions(kwargs)
         sql = f"SELECT * FROM {self.table_name} WHERE {conditions}"
         cursor = self.execute_sql(sql, kwargs)
-        objects = cursor.fetchall()
+        objects = self.fetch(cursor, True)
         return objects
 
     def update(self, data: dict, where: dict):
@@ -80,18 +105,20 @@ class Model(abc.ABC):
         return self.first(**data)
 
     def delete(self, **kwargs):
+        obj = self.first(**kwargs)
         conditions = self.get_conditions(kwargs)
         sql = f"DELETE FROM {self.table_name} WHERE {conditions}"
         self.execute_sql(sql, kwargs)
-        return True
+        return obj
 
 
 class Post(Model):
-    fields = ["image", "description", "header", "user_id"]
+    fields = ["image", "content", "title", "user_id"]
 
 
 class User(Model):
     fields = ["username", "password"]
+    write_only = ["password"]
 
     def create(self, **kwargs):
         kwargs["password"] = crypto.encrypt(kwargs.get("password"))
@@ -100,6 +127,7 @@ class User(Model):
 
 class AuthToken(Model):
     fields = ["token", "user_id", "expires"]
+    write_only = ["token", "expires"]
 
     def get_fresh_expiration(self):
         expires = datetime.datetime.now() + datetime.timedelta(**settings.EXPIRATION)

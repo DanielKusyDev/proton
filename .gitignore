@@ -129,5 +129,9 @@ dmypy.json
 .pyre/
 
 .idea
-sqlite3.db
+core/db/sqlite3.db
 config.ini
+*.pem
+*.key
+test_client.py
+assets

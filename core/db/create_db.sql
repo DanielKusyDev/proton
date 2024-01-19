@@ -3,7 +3,6 @@ drop table if exists authtoken;
 drop table if exists post;
 
 drop table if exists user;
-
 create table user
 (
     id       integer      not null
@@ -30,13 +29,13 @@ create unique index authtoken_id_uindex
 
 create table post
 (
-    id          integer not null
+    id      integer not null
         constraint post_pk
             primary key autoincrement,
-    image       varchar(1024),
-    description varchar,
-    header      varchar(1024),
-    user_id     integer
+    image   varchar,
+    content varchar,
+    title   varchar(1024),
+    user_id integer
         references user
             on update cascade on delete cascade
 );
@@ -46,4 +45,3 @@ create unique index post_int_uindex
 
 create unique index user_id_uindex
     on user (id);
-

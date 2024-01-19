@@ -1,16 +1,54 @@
+import abc
+import base64
 import json
 import os
+import socket
 import sqlite3
+import ssl
+import threading
 import unittest
-
-import crypto
-import models
+import shutil
+import settings
+from backend import crypto
+from backend.server import Server
+from core import models
 import utils
-from controllers import Controller
-from message import Message
+from core.controllers import Controller
+from core.messages import Request, Response, ModelResponse
 
 
-class ProtonTestCase(unittest.TestCase):
+class CryptographyTestCase(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.plain = "test123123"
+
+    def test_key_generation(self):
+        key1 = crypto.generate_key()
+        key2 = crypto.generate_key()
+        self.assertEqual(key1, key2)
+
+    def test_encryption(self):
+        cipher = crypto.encrypt(self.plain)
+        self.assertNotEqual(self.plain, cipher)
+
+        cipher2 = crypto.encrypt(self.plain)
+        self.assertNotEqual(cipher, cipher2)
+
+    def test_decryption(self):
+        cipher = crypto.encrypt(self.plain)
+        decrypted_cipher = crypto.decrypt(cipher)
+        self.assertEqual(decrypted_cipher, self.plain)
+
+        cipher2 = crypto.encrypt(self.plain)
+        decrypted_cipher2 = crypto.decrypt(cipher2)
+        self.assertEqual(decrypted_cipher, decrypted_cipher2)
+
+    def test_comparison(self):
+        cipher = crypto.encrypt(self.plain)
+        self.assertTrue(crypto.compare(self.plain, cipher))
+
+
+class BaseControllerTest(unittest.TestCase, metaclass=abc.ABCMeta):
 
     def setUp(self) -> None:
         self.db_name = "test.db"
@@ -25,7 +63,7 @@ class ProtonTestCase(unittest.TestCase):
         os.remove(self.db_name)
 
 
-class ModelTests(ProtonTestCase):
+class ModelTests(BaseControllerTest):
     def setUp(self) -> None:
         super(ModelTests, self).setUp()
         self.user_data = {
@@ -76,19 +114,19 @@ class ModelTests(ProtonTestCase):
             is_valid = self.auth_token_model.is_valid(user_id=123123123)
 
 
-class MessageTests(ProtonTestCase):
+class MessageTests(BaseControllerTest):
 
     def setUp(self) -> None:
         super(MessageTests, self).setUp()
         self.proper_request = """{"action":"register", "params":{"username":"...", "password":"..."}}"""
-        self.message = Message(self.proper_request)
+        self.message = Request(self.proper_request)
 
     def test_deserialization(self):
         request = """{
             "action": "",
             """
         self.message.json_string = request
-        with self.assertRaises(utils.ProtonError):
+        with self.assertRaises(json.JSONDecodeError):
             self.message.deserialize_json()
 
     def test_getting_action(self):
@@ -112,21 +150,38 @@ class MessageTests(ProtonTestCase):
         self.message.required_action_params[self.message.action] = None
         self.assertIsNone(self.message.get_params())
 
-    def test_opts(self):
-        self.assertIsNone(self.message.get_opts())
-        self.message.obj["opts"] = {"example": "test"}
-        self.assertIsInstance(self.message.get_opts(), dict)
 
+class ControllerTests(BaseControllerTest):
+    media_root = "test_assets"
+    image_str = os.path.join(media_root, "corgi.jpeg")
 
-class ControllerTests(ProtonTestCase):
+    @classmethod
+    def tearDownClass(cls) -> None:
+        assets = os.listdir(cls.media_root)
+        for path in assets:
+            if path != "corgi.jpeg":
+                os.remove(os.path.join(cls.media_root, path))
 
     def setUp(self) -> None:
         super(ControllerTests, self).setUp()
-        self.controller = Controller(self.db_name)
+        self.controller = Controller(None, self.db_name)
+
+    def get_token(self, token_instance):
+        token_id = token_instance.data[0]["id"]
+        token_instance = self.auth_token_model.last(id=token_id)[2]
+        return token_instance
+
+    def _login(self, request, create_user=True):
+        if create_user:
+            self._request_action(self.requests[0])
+        token_instance = self._request_action(self.requests[1])
+        token = self.get_token(token_instance)
+        self.controller.auth_token = token
+        return request
 
     def _request_action(self, request):
         raw_request = json.dumps(request)
-        message = Message(raw_request)
+        message = Request(raw_request)
         result = getattr(self.controller, message.action)(message)
         return result
 
@@ -139,19 +194,19 @@ class ControllerTests(ProtonTestCase):
         request = self.requests[0]
         number_of_users = len(self.user_model.all())
         result = self._request_action(request)
-        self.assertIsInstance(result, tuple)
-        self.assertGreater(len(result), number_of_users)
-        self.assertEqual(request["params"]["username"], result[1])
-        self.assertNotEqual(request["params"]["password"], result[2])
+        self.assertIsInstance(result, ModelResponse)
+        self.assertGreater(len(result.data), number_of_users)
+        self.assertEqual(request["params"]["username"], result.data[0]["username"])
+        self.assertNotEqual(request["params"]["password"], result.data[0]["username"])
 
     def test_getting_token(self):
         user = self._request_action(self.requests[0])
 
-        token = self.controller._get_token(user)
+        token = self.controller._get_token(user.data[0]["id"])
         self.assertIsInstance(token, tuple)
 
         self._request_action(self.requests[1])
-        token = self.controller._get_token(user)
+        token = self.controller._get_token(user.data[0]["id"])
         self.assertIsInstance(token, tuple)
 
     def test_login(self):
@@ -159,27 +214,74 @@ class ControllerTests(ProtonTestCase):
         request = self.requests[1].copy()
         # check valid login
         result = self._request_action(request)
-        self.assertIsInstance(result, tuple)
-        is_valid = self.auth_token_model.is_valid(user_id=user[0])
+        self.assertIsInstance(result, ModelResponse)
+        is_valid = self.auth_token_model.is_valid(user_id=user.data[0]["id"])
         self.assertTrue(is_valid)
 
         # check invalid login data
         request["params"]["username"] = "wrongusername"
-        with self.assertRaises(utils.ProtonError):
-            result = self._request_action(request)
+        result = self._request_action(request)
+        self.assertEqual(result.status, "ERROR")
 
     def test_proper_logout(self):
         user = self._request_action(self.requests[0])
         token = self._request_action(self.requests[1])
         logout_request = self.requests[2].copy()
-        logout_request["opts"]["auth_token"] = token[2]
-
+        self.controller.auth_token = self.get_token(token)
         # check if token does not exist anymore
         self._request_action(logout_request)
-        self.assertIsNone(self.auth_token_model.first(user_id=user[0]))
+        self.assertIsNone(self.auth_token_model.first(user_id=user.data[0]["id"]))
         # test attempt of providing invalid token and lack of token in opts field
         with self.assertRaises(PermissionError):
             self._request_action(logout_request)
             logout_request = self.requests[2].copy()
-            del logout_request["opts"]["auth_token"]
             self._request_action(logout_request)
+
+    def _create_post(self, create_user=True):
+        request = self._login(self.requests[3], create_user)
+        request["params"]["image"] = self.image_str
+        response = self._request_action(request)
+        return response
+
+    def test_create_full_data_post(self):
+        response = self._create_post()
+        self.assertTrue(response.status)
+
+    def test_getting_post_by_id(self):
+        self._create_post()
+        request = self._login(self.requests[5], False)
+        response = self._request_action(request)
+        self.assertIsInstance(response, ModelResponse)
+        self.assertTrue(response.status)
+
+    def test_getting_post(self):
+        self._create_post(True)
+        self._create_post(False)
+        request = self._login(self.requests[4], False)
+        response = self._request_action(request)
+        self.assertIsInstance(response, ModelResponse)
+        self.assertEqual(len(response.data), 2)
+
+    def test_post_modify(self):
+        post = self._create_post()
+        request = self.requests[6]
+        title = "NEWTITLE"
+        request["params"]["title"] = title
+        request = self._login(request, False)
+        response = self._request_action(request)
+        self.assertIsInstance(response, ModelResponse)
+        self.assertNotEqual(post.data[0]["title"], response.data[0]["title"])
+        self.assertEqual(title, response.data[0]["title"])
+
+    def test_post_deletion(self):
+        post = self._create_post()
+        request = self._login(self.requests[7], False)
+        response = self._request_action(request)
+        self.assertIsInstance(response, Response)
+        self.assertListEqual(self.post_model.all(), [])
+
+
+class ThreadedServer(threading.Thread):
+    def run(self) -> None:
+        server = Server(("localhost", 1234))
+        server.runserver()

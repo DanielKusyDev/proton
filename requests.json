@@ -14,56 +14,38 @@
     }
   },
   {
-    "action": "logout",
-    "opts": {
-      "auth_token": "gsF23!a4..."
-    }
-  },
-  {
-    "action": "get",
-    "opts": {
-      "auth_token": "gsF23!a4..."
-    }
-  },
-  {
-    "action": "get",
-    "params": {
-      "id": 1
-    },
-    "opts": {
-      "auth_token": "gsF23!a4..."
-    }
+    "action": "logout"
   },
   {
     "action": "create",
     "params": {
       "image": "data:image/jpeg;base64...",
       "content": "Lorem ipsum...",
-      "header": "dolor sit amet"
-    },
-    "opts": {
-      "auth_token": "gsF23!a4..."
+      "title": "dolor sit amet"
     }
   },
   {
-    "action": "delete",
+    "action": "get"
+  },
+  {
+    "action": "get",
     "params": {
       "id": 1
-    },
-    "opts": {
-      "auth_token": "gsF23!a4..."
     }
   },
   {
     "action": "alter",
     "params": {
       "id": 1,
-      "image": "data:image/jpeg;base64",
+      "image": "test_assets/corgi.jpeg",
       "content": "consectetur adipiscing elit.",
-      "header": "Proin nibh augue"
-    },
-    "opts": {
-      "auth_token": "gsF23!a4..."
+      "title": "Proin nibh augue"
+    }
+  },
+  {
+    "action": "delete",
+    "params": {
+      "id": 1
     }
   }
 ]

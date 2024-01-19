@@ -1,0 +1,34 @@
+[
+  {
+    "status": "ERROR",
+    "message": "Lorem ipsum dolor sit amet..."
+  },
+  {
+    "status": "OK",
+    "message": "Lorem ipsum dolor sit amet...",
+    "data": [
+      {
+        "id": 1,
+        "image": "...",
+        "content": "Lorem ipsum dolor sit amet...",
+        "title": "Lorem ipsum dolor sit amet...",
+        "user_id": 1
+      },
+      {
+        "id": 2,
+        "image": "...",
+        "content": "Lorem ipsum dolor sit amet...",
+        "title": "Lorem ipsum dolor sit amet...",
+        "user_id": 2
+      },
+      {
+        "id": 3,
+        "image": "...",
+        "content": "Lorem ipsum dolor sit amet...",
+        "title": "Lorem ipsum dolor sit amet...",
+        "user_id": 3
+      }
+    ]
+  }
+]
+

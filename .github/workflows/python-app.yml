@@ -1,0 +1,40 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Proton
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Prepare test environment
+      run: |
+        cp config_example.ini config.ini
+        openssl req -new -x509 -days 365 -nodes -out server.pem -keyout server.pem -subj "/C=PL/ST=Lubelskie/L=Lublin/O=UMCS/OU=MFI/CN=proton"
+        openssl req -new -x509 -days 365 -nodes -out client.pem -keyout client.pem -subj "/C=PL/ST=Lubelskie/L=Lublin/O=UMCS/OU=MFI/CN=proton"
+        python runserver.py > /dev/null & echo $! > runserver.pid
+    - name: Test with unittest
+      run: |
+        python -m unittest tests.py
+    - name: Kill temporary processes
+      run: |
+        kill -9 $(cat runserver.pid)
+        rm server.pem
+        rm client.pem
